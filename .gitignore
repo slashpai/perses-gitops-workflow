@@ -1,0 +1,6 @@
+# Ignore editor artifacts
+.idea/
+.vscode/
+
+# Go
+dashboards/bin/
