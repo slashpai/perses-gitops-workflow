@@ -1,0 +1,75 @@
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  labels:
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/instance: go-overview
+    app.kubernetes.io/managed-by: perses-gitops-workflow
+    app.kubernetes.io/name: perses-dashboard
+    app.kubernetes.io/part-of: perses-operator
+  name: go-overview
+  namespace: monitoring
+spec:
+  config:
+    display:
+      name: Go / Overview
+    duration: 1h
+    layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Runtime
+        items:
+        - content:
+            $ref: '#/spec/panels/0_0'
+          height: 8
+          width: 24
+          x: 0
+          "y": 0
+    panels:
+      "0_0":
+        kind: Panel
+        spec:
+          display:
+            description: CPU seconds rate — query built with promql-builder at compile
+              time.
+            name: CPU usage
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              visual:
+                display: line
+                lineWidth: 0.25
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus
+                  query: rate(process_cpu_seconds_total{job=~"$job"}[$__rate_interval])
+                  seriesNameFormat: '{{job}}'
+    variables:
+    - kind: ListVariable
+      spec:
+        allowAllValue: false
+        allowMultiple: false
+        display:
+          hidden: false
+          name: job
+        name: job
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+              name: prometheus
+            labelName: job
+            matchers:
+            - go_goroutines{}
+status: {}
