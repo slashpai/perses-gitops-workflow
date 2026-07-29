@@ -53,6 +53,10 @@ See [`deploy/argocd/README.md`](deploy/argocd/README.md) for Argo CD UI, polling
 
 ![Argo CD Applications list — perses-dashboards Healthy / Synced](docs/img/argocd-app.png)
 
+![Argo CD synced dashboard resources](docs/img/synced-dashboard.png)
+
+![Argo CD synced new dashboard resource](docs/img/synced-new-dashboard.png)
+
 **Node Exporter / Nodes** (CPU, load, memory, network) and **Filesystem** (used disk space ratio):
 
 ![Node Exporter / Nodes dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
@@ -81,6 +85,8 @@ make check-labels          # verify label matchers against Prometheus labels
 Collectors run once on startup, then refresh daily (`period: 1d`). A PreSync Job gates every Argo CD sync. See [`deploy/argocd/README.md`](deploy/argocd/README.md) and [`deploy/metrics-usage/README.md`](deploy/metrics-usage/README.md) for details.
 
 ![Argo CD resource tree showing PreSync check-dashboard-metrics Job](docs/img/metrics-usage-as-presync-hook.png)
+
+![PreSync Job logs — metrics and labels checks](docs/img/metrics-usage-as-presync-hook-logs.png)
 
 ## Related
 

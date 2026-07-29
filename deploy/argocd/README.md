@@ -27,6 +27,21 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
+## Force a sync
+
+Trigger an immediate sync without waiting for the next poll:
+
+```sh
+kubectl -n argocd patch application perses-dashboards --type merge \
+  -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD"}}}'
+```
+
+Watch the PreSync Job logs:
+
+```sh
+kubectl logs -n perses-dev job/check-dashboard-metrics -f
+```
+
 ## Troubleshooting
 
 ### DNS timeouts (`lookup … i/o timeout`) on kind + Podman
