@@ -1,4 +1,4 @@
-.PHONY: validate render setup-prerequisites cleanup
+.PHONY: validate render setup-prerequisites setup-argocd cleanup
 
 PROJECT ?= perses-dev
 DATASOURCE ?= prometheus-datasource
@@ -15,6 +15,9 @@ render: validate
 
 setup-prerequisites:
 	bash ./scripts/setup-prerequisites.sh
+
+setup-argocd:
+	bash ./scripts/setup-argocd.sh
 
 cleanup:
 	bash ./scripts/cleanup.sh
