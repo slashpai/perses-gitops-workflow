@@ -4,3 +4,5 @@
 
 # Go
 dashboards/bin/
+dashboards/checklabels
+dashboards/render
