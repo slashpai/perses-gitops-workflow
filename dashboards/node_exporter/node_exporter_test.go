@@ -66,3 +66,13 @@ func TestBuildNodesToPersesDashboardCR(t *testing.T) {
 		t.Errorf("yaml missing node-exporter PromQL:\n%s", output)
 	}
 }
+
+// TestBuildFilesystem exercises the new dashboard path. It is expected to fail
+// on this demo branch: FilesystemUsedRatio is deliberately invalid so
+// promqlbuilder.Validate panics during query construction.
+func TestBuildFilesystem(t *testing.T) {
+	_, err := ValidateBuilder(BuildFilesystem("perses-dev", "prometheus-datasource"))
+	if err != nil {
+		t.Fatalf("BuildFilesystem: %v", err)
+	}
+}

@@ -86,3 +86,33 @@ func Load1(labelMatchers ...*labels.Matcher) parser.Expr {
 	base := vector.New(vector.WithMetricName("node_load1"))
 	return withNodeMatchers(base, labelMatchers...)
 }
+
+// FilesystemUsedRatio is (size - avail) / size for node_filesystem_* metrics.
+//
+// DEMO BUG: the Div is missing its RHS on purpose so query construction
+// (SetLabelMatchersV2 / promqlbuilder.Validate) fails in CI
+// (make validate-dashboards).
+func FilesystemUsedRatio(labelMatchers ...*labels.Matcher) parser.Expr {
+	used := promqlbuilder.Sub(
+		vector.New(
+			vector.WithMetricName("node_filesystem_size_bytes"),
+			vector.WithLabelMatchers(
+				label.New("fstype").NotEqual(""),
+				label.New("mountpoint").NotEqual(""),
+			),
+		),
+		vector.New(
+			vector.WithMetricName("node_filesystem_avail_bytes"),
+			vector.WithLabelMatchers(
+				label.New("fstype").NotEqual(""),
+				label.New("mountpoint").NotEqual(""),
+			),
+		),
+	)
+	base := &parser.BinaryExpr{
+		Op:  parser.DIV,
+		LHS: used,
+		// RHS intentionally omitted for the CI demo.
+	}
+	return withNodeMatchers(base, labelMatchers...)
+}
