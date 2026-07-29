@@ -1,125 +1,80 @@
 # Perses GitOps workflow example
 
-End-to-end example of **dashboard-as-code** with PromQL safety for GitOps:
+End-to-end example of **Kubernetes-native dashboard-as-code** with PromQL validation for GitOps:
 
-1. **Author** dashboards in Go (`dashboards/`) using [promql-builder](https://github.com/perses/promql-builder)
-2. **Validate** in CI — `go test` catches structural PromQL errors before merge
-3. **Render** `PersesDashboard` CRs as `perses.dev/v1alpha2` (`make render`)
+1. **Author** dashboards in Go (`dashboards/`) with the [Perses Go SDK](https://github.com/perses/perses) and [promql-builder](https://github.com/perses/promql-builder)
+2. **Validate** in CI — `promqlbuilder.Validate` / `EqualRegexp` catch bad PromQL on the Go path
+3. **Render** `PersesDashboard` CRs (`make render`)
 4. **Commit** manifests under `manifests/dashboards/`
-5. **Sync** with Argo CD / Flux → [perses-operator](https://github.com/perses/perses-operator) reconciles
+5. **Sync** with Argo CD → [perses-operator](https://github.com/perses/perses-operator) reconciles
 
-Inspired by the [Perses community dashboards](https://github.com/perses/community-mixins) talk on GitOps and the exploration in [perses-harness](https://github.com/slashpai/perses-harness).
+Demo dashboard: **Node Exporter / Nodes** (CPU, load, memory, network).  
+Defaults: namespace `perses-dev`, datasource `prometheus-datasource` (same as [perses-operator-examples](https://github.com/slashpai/perses-operator-examples)).
 
-## Why dashboard-as-code for GitOps?
+![Node Exporter / Nodes dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
 
-| JSON/YAML in Git | Dashboard-as-code |
-| ---------------- | ----------------- |
-| `"query": "rate(up[)"` can merge if nobody spots it | `go test` fails — invalid AST cannot compile |
-| CUE validates shape only | PromQL structure validated at build time |
-| Manual review of query strings | Typed Go + unit tests in CI |
-
-Perses variables (`$job`, `$__rate_interval`) are substituted at query time; CI validates structure by building queries in Go and optionally parsing after substitution (see `dashboards/promql/queries_test.go`).
-
-## Repository layout
+## Layout
 
 ```text
-dashboards/           # Go module — source of truth
-  promql/             # promql-builder queries (compile-time safe)
-  build/              # Perses go-sdk dashboard definition
-  cmd/render/         # emits PersesDashboard YAML
-manifests/
-  dashboards/         # generated CRs — commit these for GitOps
-deploy/
-  argocd/             # example Argo CD Application
-.github/workflows/    # CI: test + render
+dashboards/                      # Go source of truth
+manifests/dashboards/            # generated CRs for GitOps
+scripts/setup-prerequisites.sh
+scripts/cleanup.sh
+scripts/kube-prometheus-values.yaml
+deploy/argocd/
 ```
 
 ## Quick start
 
 ```sh
-# Prerequisites: Go 1.26+
-make validate    # run PromQL + dashboard tests
-make render      # write manifests/dashboards/go-overview.yaml
+# Local (Go 1.26+)
+make validate
+make render
+
+# Cluster (kubectl, helm, kind) — recommended: create a new kind cluster
+make setup-prerequisites
+
+# Tear down when done
+make cleanup
 ```
 
-### Customize
+`setup-prerequisites` prompts you to choose a target; **creating a new kind cluster** (`perses-demo` by default) is recommended. It then installs cert-manager, perses-operator, a **minimal** kube-prometheus-stack (Prometheus operator, Prometheus, Alertmanager, node-exporter), plus Perses and the datasource in `perses-dev`.
+
+`cleanup` removes that stack (or deletes the kind cluster entirely).
+
+Non-interactive:
 
 ```sh
-make render PROJECT=my-team DATASOURCE=platform-prometheus
+YES=true CLUSTER_NAME=perses-demo make setup-prerequisites
+YES=true CLUSTER_NAME=perses-demo DELETE_KIND_CLUSTER=true make cleanup
 ```
 
-## GitOps deployment
-
-### Prerequisites
-
-- Kubernetes cluster with [perses-operator](https://github.com/perses/perses-operator) **v0.4+** installed (v1alpha2 `PersesDashboard` API)
-- A `Perses` instance and `PersesDatasource` named `prometheus` (or match `--datasource`)
-- Argo CD or Flux (optional)
-
-### Apply manually
+## Deploy
 
 ```sh
 kubectl apply -f manifests/dashboards/
-```
 
-### Argo CD
-
-Copy and edit `deploy/argocd/application.yaml`, then:
-
-```sh
+# Or Argo CD: set repoURL in deploy/argocd/application.yaml, then:
 kubectl apply -f deploy/argocd/application.yaml
+
+# UI
+kubectl -n perses-dev port-forward svc/perses-sample 8080:8080
 ```
 
-Argo CD watches `manifests/dashboards/` in this repo and syncs `PersesDashboard` resources.
+## CI
 
-## CI workflow
+`make validate` → `make render` → fail if `manifests/dashboards/` drifts.
 
-On every PR:
+## Note
 
-1. `go test ./...` — PromQL + dashboard build tests
-2. `make render` — regenerate manifests
-3. `git diff --exit-code manifests/dashboards/` — fail if committed YAML drift from render
-
-## Relationship to community-mixins
-
-This repo is a **minimal standalone example** of the same dashboard-as-code + GitOps pattern used in [community-mixins](https://github.com/perses/community-mixins):
-
-| | perses-gitops-workflow | community-mixins |
-| --- | --- | --- |
-| Scope | One demo dashboard (`go-overview`) | Full production dashboard library |
-| Output | `manifests/dashboards/*.yaml` for your GitOps repo | `examples/dashboards/operator/` via `make build-dashboards` |
-| PromQL helpers | Local `dashboards/promql/` (from community-mixins patterns) | `pkg/promql/` |
-
-For production dashboards, use community-mixins. Use this repo to learn the GitOps render → commit → sync workflow.
-
-## Workflow diagram
-
-```text
-  Go dashboards (dashboards/)
-           │
-           ▼
-    ┌──────────────┐
-    │  CI: go test │  ← PromQL structural validation
-    └──────┬───────┘
-           ▼
-    ┌──────────────┐
-    │ make render  │  ← PersesDashboard YAML
-    └──────┬───────┘
-           ▼
-    ┌──────────────┐
-    │  Git commit  │
-    └──────┬───────┘
-           ▼
-    ┌──────────────┐
-    │ Argo CD sync │
-    └──────┬───────┘
-           ▼
-    perses-operator → Perses UI
-```
+`dashboards/go.mod` temporarily `replace`s promql-builder with [`slashpai/promql-builder`](https://github.com/slashpai/promql-builder) until [perses/promql-builder#53](https://github.com/perses/promql-builder/pull/53) lands.
 
 ## Related
 
-- [community-mixins](https://github.com/perses/community-mixins) — production-scale dashboard-as-code
+- [perses-operator](https://github.com/perses/perses-operator)
+- [perses-operator-examples](https://github.com/slashpai/perses-operator-examples)
+- [promql-builder](https://github.com/perses/promql-builder)
+- [community-mixins](https://github.com/perses/community-mixins)
 
 ## License
 
