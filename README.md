@@ -1,69 +1,66 @@
-# Perses GitOps workflow example
+# Perses dashboard-as-code (GitOps example)
 
-End-to-end example of **Kubernetes-native dashboard-as-code** with PromQL validation for GitOps:
+Author dashboards in Go, validate PromQL before render, generate `PersesDashboard` CRs, then deploy with kubectl or Argo CD. The YAML under `manifests/dashboards/` is the **delivery artifact** — source of truth is `dashboards/`.
 
-1. **Author** dashboards in Go (`dashboards/`) with the [Perses Go SDK](https://github.com/perses/perses) and [promql-builder](https://github.com/perses/promql-builder)
-2. **Validate** in CI — `promqlbuilder.Validate` / `EqualRegexp` catch bad PromQL on the Go path
-3. **Render** `PersesDashboard` CRs (`make render`)
+1. **Author** in Go (`dashboards/`) with the [Perses Go SDK](https://github.com/perses/perses) and [promql-builder](https://github.com/perses/promql-builder)
+2. **Validate** — `promqlbuilder.Validate` / `equalRegexp` catch bad PromQL on the Go path
+3. **Render** `PersesDashboard` CRs (`make render-dashboards`)
 4. **Commit** manifests under `manifests/dashboards/`
-5. **Sync** with Argo CD → [perses-operator](https://github.com/perses/perses-operator) reconciles
-
-Demo dashboard: **Node Exporter / Nodes** (CPU, load, memory, network).  
-Defaults: namespace `perses-dev`, datasource `prometheus-datasource` (same as [perses-operator-examples](https://github.com/slashpai/perses-operator-examples)).
-
-![Node Exporter / Nodes dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
-
-## Layout
-
-```text
-dashboards/                      # Go source of truth
-manifests/dashboards/            # generated CRs for GitOps
-scripts/setup-prerequisites.sh
-scripts/cleanup.sh
-scripts/kube-prometheus-values.yaml
-deploy/argocd/
-```
+5. **Sync** with Argo CD (or `kubectl apply`) → [perses-operator](https://github.com/perses/perses-operator) reconciles
 
 ## Quick start
 
 ```sh
-# Local (Go 1.26+)
-make validate
-make render
+# After changing dashboards/ (Go 1.26+)
+make validate-dashboards
+make render-dashboards
 
-# Cluster (kubectl, helm, kind) — recommended: create a new kind cluster
+# kind + cert-manager, operator, minimal kube-prometheus, Perses (perses-dev)
 make setup-prerequisites
 
-# Tear down when done
+# Argo CD → sync manifests/dashboards (push main first; prompts for fork repoURL)
+make setup-argocd
+
+# Tear down stack (or delete the kind cluster)
 make cleanup
 ```
-
-`setup-prerequisites` prompts you to choose a target; **creating a new kind cluster** (`perses-demo` by default) is recommended. It then installs cert-manager, perses-operator, a **minimal** kube-prometheus-stack (Prometheus operator, Prometheus, Alertmanager, node-exporter), plus Perses and the datasource in `perses-dev`.
-
-`cleanup` removes that stack (or deletes the kind cluster entirely).
 
 Non-interactive:
 
 ```sh
 YES=true CLUSTER_NAME=perses-demo make setup-prerequisites
+YES=true REPO_URL=https://github.com/<you>/perses-gitops-workflow.git make setup-argocd
 YES=true CLUSTER_NAME=perses-demo DELETE_KIND_CLUSTER=true make cleanup
 ```
 
 ## Deploy
 
 ```sh
+# Direct apply (no Argo CD)
 kubectl apply -f manifests/dashboards/
 
-# Or Argo CD: set repoURL in deploy/argocd/application.yaml, then:
-kubectl apply -f deploy/argocd/application.yaml
+# Or GitOps
+make setup-argocd
 
-# UI
+# Perses UI
 kubectl -n perses-dev port-forward svc/perses-sample 8080:8080
 ```
 
+![Argo CD Application synced](docs/img/argocd-app.png)
+
+**Node Exporter / Nodes** (CPU, load, memory, network).
+
+![Node Exporter / Nodes dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
+
 ## CI
 
-`make validate` → `make render` → fail if `manifests/dashboards/` drifts.
+`make validate-dashboards` → `make render-dashboards` → fail if `manifests/dashboards/` drifts.
+
+## Troubleshooting
+
+### DNS timeouts (`lookup … i/o timeout`) on kind + Podman
+
+Intermittent ClusterIP/DNS issues are common with kind on Podman (especially with multiple clusters). Prefer one cluster; recreate with `make cleanup` / `make setup-prerequisites` if CoreDNS stays broken.
 
 ## Note
 
