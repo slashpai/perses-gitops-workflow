@@ -240,6 +240,6 @@ echo
 echo "Next:"
 echo "  kubectl apply -f manifests/dashboards/"
 echo "  # or GitOps: make setup-argocd"
-echo "  # after editing dashboards/: make render"
+echo "  # after editing dashboards/: make render-dashboards"
 echo
 echo "UI: kubectl -n perses-dev port-forward svc/perses-sample 8080:8080"

@@ -1,13 +1,13 @@
-.PHONY: validate render setup-prerequisites setup-argocd cleanup
+.PHONY: validate-dashboards render-dashboards setup-prerequisites setup-argocd cleanup
 
 PROJECT ?= perses-dev
 DATASOURCE ?= prometheus-datasource
 OUTPUT_DIR ?= manifests/dashboards
 
-validate:
+validate-dashboards:
 	cd dashboards && go test ./...
 
-render: validate
+render-dashboards: validate-dashboards
 	cd dashboards && go run ./cmd/render \
 		--project=$(PROJECT) \
 		--datasource=$(DATASOURCE) \

@@ -3,7 +3,7 @@
 This directory contains **rendered** Kubernetes custom resources. Do not edit by hand — run from repo root:
 
 ```sh
-make render
+make render-dashboards
 ```
 
 Then commit the updated YAML. GitOps controllers (Argo CD, Flux) should sync from this path.

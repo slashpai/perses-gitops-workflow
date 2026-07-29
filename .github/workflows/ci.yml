@@ -18,10 +18,10 @@ jobs:
           cache-dependency-path: dashboards/go.sum
 
       - name: Validate PromQL and dashboard build
-        run: make validate
+        run: make validate-dashboards
 
       - name: Render PersesDashboard manifests
-        run: make render
+        run: make render-dashboards
 
       - name: Fail if committed manifests drift from render
         run: git diff --exit-code manifests/dashboards/
