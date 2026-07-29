@@ -44,6 +44,18 @@ spec:
 
                 if [ "$PENDING" = "{}" ]; then
                   echo "OK: All dashboard metrics exist in Prometheus"
+
+                  # Check that labels have been collected for used metrics
+                  METRICS=$(curl -sf "http://metrics-usage.perses-dev:8080/api/v1/metrics?used=true" 2>/dev/null) || {
+                    echo "WARN: Could not fetch metrics with labels (labels check skipped)"
+                    exit 0
+                  }
+                  NO_LABELS=$(echo "$METRICS" | sed -n 's/.*"\([^"]*\)":{[^}]*"labels":\[\]/\1/p')
+                  if [ -n "$NO_LABELS" ]; then
+                    echo "WARN: Some used metrics have no labels collected yet:"
+                    echo "  $NO_LABELS"
+                    echo "  (labels_collector may still be running — run 'make check-labels' locally for full validation)"
+                  fi
                   exit 0
                 fi
 
