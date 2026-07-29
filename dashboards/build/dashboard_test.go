@@ -8,16 +8,16 @@ import (
 	k8syaml "sigs.k8s.io/yaml"
 )
 
-func TestGoOverviewBuilds(t *testing.T) {
-	builder, err := ValidateBuilder(GoOverview("monitoring", "prometheus"))
+func TestNodeExporterNodesBuilds(t *testing.T) {
+	builder, err := ValidateBuilder(NodeExporterNodes("perses-dev", "prometheus-datasource"))
 	if err != nil {
-		t.Fatalf("GoOverview: %v", err)
+		t.Fatalf("NodeExporterNodes: %v", err)
 	}
 
-	if builder.Dashboard.Metadata.Name != "go-overview" {
+	if builder.Dashboard.Metadata.Name != "node-exporter-nodes" {
 		t.Fatalf("unexpected name: %s", builder.Dashboard.Metadata.Name)
 	}
-	if builder.Dashboard.Metadata.Project != "monitoring" {
+	if builder.Dashboard.Metadata.Project != "perses-dev" {
 		t.Fatalf("unexpected project: %s", builder.Dashboard.Metadata.Project)
 	}
 	if len(builder.Dashboard.Spec.Panels) == 0 {
@@ -26,9 +26,9 @@ func TestGoOverviewBuilds(t *testing.T) {
 }
 
 func TestToPersesDashboardCR_v1alpha2(t *testing.T) {
-	builder, err := ValidateBuilder(GoOverview("monitoring", "prometheus"))
+	builder, err := ValidateBuilder(NodeExporterNodes("perses-dev", "prometheus-datasource"))
 	if err != nil {
-		t.Fatalf("GoOverview: %v", err)
+		t.Fatalf("NodeExporterNodes: %v", err)
 	}
 
 	cr := ToPersesDashboard(builder)
@@ -39,11 +39,11 @@ func TestToPersesDashboardCR_v1alpha2(t *testing.T) {
 	if pd.APIVersion != "perses.dev/v1alpha2" {
 		t.Fatalf("unexpected apiVersion: %s", pd.APIVersion)
 	}
-	if pd.Namespace != "monitoring" {
+	if pd.Namespace != "perses-dev" {
 		t.Fatalf("unexpected namespace: %s", pd.Namespace)
 	}
-	if pd.Spec.Config.Display == nil || pd.Spec.Config.Display.Name != "Go / Overview" {
-		t.Fatalf("spec.config.display.name = %v, want Go / Overview", pd.Spec.Config.Display)
+	if pd.Spec.Config.Display == nil || pd.Spec.Config.Display.Name != "Node Exporter / Nodes" {
+		t.Fatalf("spec.config.display.name = %v, want Node Exporter / Nodes", pd.Spec.Config.Display)
 	}
 
 	yamlOutput, err := k8syaml.Marshal(cr)
@@ -59,5 +59,8 @@ func TestToPersesDashboardCR_v1alpha2(t *testing.T) {
 	}
 	if strings.Contains(output, "perses.dev/v1alpha1") {
 		t.Errorf("yaml should not contain v1alpha1:\n%s", output)
+	}
+	if !strings.Contains(output, "node_cpu_seconds_total") {
+		t.Errorf("yaml missing node-exporter PromQL:\n%s", output)
 	}
 }

@@ -5,6 +5,7 @@ import (
 
 	gitpromql "github.com/slashpai/perses-gitops-workflow/dashboards/promql"
 
+	commonSdk "github.com/perses/perses/go-sdk/common"
 	"github.com/perses/perses/go-sdk/dashboard"
 	"github.com/perses/perses/go-sdk/panel"
 	panelgroup "github.com/perses/perses/go-sdk/panel-group"
@@ -14,41 +15,132 @@ import (
 	timeSeriesPanel "github.com/perses/plugins/timeserieschart/sdk/go"
 )
 
-// GoOverview builds a minimal dashboard-as-code example for GitOps.
-// PromQL is composed with promql-builder (see dashboards/promql) — not hand-written YAML strings.
-func GoOverview(project, datasource string) (dashboard.Builder, error) {
-	return dashboard.New("go-overview",
+var (
+	percentDecimalUnit  = string(commonSdk.PercentDecimalUnit)
+	bytesPerSecondsUnit = string(commonSdk.BytesPerSecondsUnit)
+	decimalUnit         = string(commonSdk.DecimalUnit)
+)
+
+// NodeExporterNodes builds a Node Exporter / Nodes style dashboard
+// (inspired by community-mixins BuildNodeExporterNodes) for GitOps demos.
+// PromQL uses promql-builder + Validate — not hand-written YAML strings.
+func NodeExporterNodes(project, datasource string) (dashboard.Builder, error) {
+	return dashboard.New("node-exporter-nodes",
 		dashboard.ProjectName(project),
-		dashboard.Name("Go / Overview"),
-		dashboard.AddVariable("job",
+		dashboard.Name("Node Exporter / Nodes"),
+		dashboard.AddVariable("instance",
 			listvariable.List(
-				labelvalues.PrometheusLabelValues("job",
-					labelvalues.Matchers("go_goroutines"),
+				labelvalues.PrometheusLabelValues("instance",
+					labelvalues.Matchers(`node_uname_info{job="node-exporter",sysname!="Darwin"}`),
 					variableDatasource(datasource),
 				),
-				listvariable.DisplayName("job"),
+				listvariable.DisplayName("instance"),
+				listvariable.AllowAllValue(true),
 			),
 		),
-		dashboard.AddPanelGroup("Runtime",
-			panelgroup.PanelsPerLine(1),
+		dashboard.AddPanelGroup("CPU",
+			panelgroup.PanelsPerLine(2),
 			panelgroup.PanelHeight(8),
-			panelgroup.AddPanel("CPU usage",
-				panel.Description("CPU seconds rate — query built with promql-builder at compile time."),
+			panelgroup.AddPanel("CPU Usage",
+				panel.Description("CPU busy ratio (1 − idle) — community-mixins style query via promql-builder + Validate."),
 				timeSeriesPanel.Chart(
+					timeSeriesPanel.WithYAxis(timeSeriesPanel.YAxis{
+						Format: &commonSdk.Format{Unit: &percentDecimalUnit},
+					}),
 					timeSeriesPanel.WithLegend(timeSeriesPanel.Legend{
 						Position: timeSeriesPanel.BottomPosition,
 						Mode:     timeSeriesPanel.ListMode,
 					}),
-					timeSeriesPanel.WithVisual(timeSeriesPanel.Visual{
-						Display:   timeSeriesPanel.LineDisplay,
-						LineWidth: 0.25,
+				),
+				panel.AddQuery(
+					query.PromQL(
+						gitpromql.CPUUsageIdleRatio().Pretty(0),
+						queryDatasource(datasource),
+						query.SeriesNameFormat("{{instance}}"),
+					),
+				),
+			),
+			panelgroup.AddPanel("Load (1m)",
+				panel.Description("node_load1 — 1-minute load average."),
+				timeSeriesPanel.Chart(
+					timeSeriesPanel.WithYAxis(timeSeriesPanel.YAxis{
+						Format: &commonSdk.Format{Unit: &decimalUnit},
+					}),
+					timeSeriesPanel.WithLegend(timeSeriesPanel.Legend{
+						Position: timeSeriesPanel.BottomPosition,
+						Mode:     timeSeriesPanel.ListMode,
 					}),
 				),
 				panel.AddQuery(
 					query.PromQL(
-						gitpromql.CPUUsageRate().Pretty(0),
+						gitpromql.Load1().Pretty(0),
 						queryDatasource(datasource),
-						query.SeriesNameFormat("{{job}}"),
+						query.SeriesNameFormat("{{instance}}"),
+					),
+				),
+			),
+		),
+		dashboard.AddPanelGroup("Memory",
+			panelgroup.PanelsPerLine(1),
+			panelgroup.PanelHeight(8),
+			panelgroup.AddPanel("Memory Usage",
+				panel.Description("1 − MemAvailable/MemTotal — node-exporter memory utilisation."),
+				timeSeriesPanel.Chart(
+					timeSeriesPanel.WithYAxis(timeSeriesPanel.YAxis{
+						Format: &commonSdk.Format{Unit: &percentDecimalUnit},
+					}),
+					timeSeriesPanel.WithLegend(timeSeriesPanel.Legend{
+						Position: timeSeriesPanel.BottomPosition,
+						Mode:     timeSeriesPanel.ListMode,
+					}),
+				),
+				panel.AddQuery(
+					query.PromQL(
+						gitpromql.MemoryUsageRatio().Pretty(0),
+						queryDatasource(datasource),
+						query.SeriesNameFormat("{{instance}}"),
+					),
+				),
+			),
+		),
+		dashboard.AddPanelGroup("Network",
+			panelgroup.PanelsPerLine(2),
+			panelgroup.PanelHeight(8),
+			panelgroup.AddPanel("Network Received",
+				panel.Description("node_network_receive_bytes_total rate (excluding lo)."),
+				timeSeriesPanel.Chart(
+					timeSeriesPanel.WithYAxis(timeSeriesPanel.YAxis{
+						Format: &commonSdk.Format{Unit: &bytesPerSecondsUnit},
+					}),
+					timeSeriesPanel.WithLegend(timeSeriesPanel.Legend{
+						Position: timeSeriesPanel.BottomPosition,
+						Mode:     timeSeriesPanel.ListMode,
+					}),
+				),
+				panel.AddQuery(
+					query.PromQL(
+						gitpromql.NetworkReceiveBytes().Pretty(0),
+						queryDatasource(datasource),
+						query.SeriesNameFormat("{{instance}} - {{device}}"),
+					),
+				),
+			),
+			panelgroup.AddPanel("Network Transmitted",
+				panel.Description("node_network_transmit_bytes_total rate (excluding lo)."),
+				timeSeriesPanel.Chart(
+					timeSeriesPanel.WithYAxis(timeSeriesPanel.YAxis{
+						Format: &commonSdk.Format{Unit: &bytesPerSecondsUnit},
+					}),
+					timeSeriesPanel.WithLegend(timeSeriesPanel.Legend{
+						Position: timeSeriesPanel.BottomPosition,
+						Mode:     timeSeriesPanel.ListMode,
+					}),
+				),
+				panel.AddQuery(
+					query.PromQL(
+						gitpromql.NetworkTransmitBytes().Pretty(0),
+						queryDatasource(datasource),
+						query.SeriesNameFormat("{{instance}} - {{device}}"),
 					),
 				),
 			),

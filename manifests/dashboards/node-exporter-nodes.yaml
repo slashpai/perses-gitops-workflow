@@ -1,0 +1,231 @@
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  labels:
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/instance: node-exporter-nodes
+    app.kubernetes.io/managed-by: perses-gitops-workflow
+    app.kubernetes.io/name: perses-dashboard
+    app.kubernetes.io/part-of: perses-operator
+  name: node-exporter-nodes
+  namespace: perses-dev
+spec:
+  config:
+    display:
+      name: Node Exporter / Nodes
+    duration: 1h
+    layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: CPU
+        items:
+        - content:
+            $ref: '#/spec/panels/0_0'
+          height: 8
+          width: 12
+          x: 0
+          "y": 0
+        - content:
+            $ref: '#/spec/panels/0_1'
+          height: 8
+          width: 12
+          x: 12
+          "y": 0
+    - kind: Grid
+      spec:
+        display:
+          title: Memory
+        items:
+        - content:
+            $ref: '#/spec/panels/1_0'
+          height: 8
+          width: 24
+          x: 0
+          "y": 0
+    - kind: Grid
+      spec:
+        display:
+          title: Network
+        items:
+        - content:
+            $ref: '#/spec/panels/2_0'
+          height: 8
+          width: 12
+          x: 0
+          "y": 0
+        - content:
+            $ref: '#/spec/panels/2_1'
+          height: 8
+          width: 12
+          x: 12
+          "y": 0
+    panels:
+      "0_0":
+        kind: Panel
+        spec:
+          display:
+            description: CPU busy ratio (1 − idle) — community-mixins style query
+              via promql-builder + Validate.
+            name: CPU Usage
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: percent-decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |2-
+                      1
+                    -
+                      avg by (instance) (
+                        rate(
+                          node_cpu_seconds_total{instance=~"$instance",job="node-exporter",mode="idle"}[$__rate_interval]
+                        )
+                      )
+                  seriesNameFormat: '{{instance}}'
+      "0_1":
+        kind: Panel
+        spec:
+          display:
+            description: node_load1 — 1-minute load average.
+            name: Load (1m)
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: node_load1{instance=~"$instance",job="node-exporter"}
+                  seriesNameFormat: '{{instance}}'
+      "1_0":
+        kind: Panel
+        spec:
+          display:
+            description: 1 − MemAvailable/MemTotal — node-exporter memory utilisation.
+            name: Memory Usage
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: percent-decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |2-
+                      1
+                    -
+                        node_memory_MemAvailable_bytes{instance=~"$instance",job="node-exporter"}
+                      /
+                        node_memory_MemTotal_bytes{instance=~"$instance",job="node-exporter"}
+                  seriesNameFormat: '{{instance}}'
+      "2_0":
+        kind: Panel
+        spec:
+          display:
+            description: node_network_receive_bytes_total rate (excluding lo).
+            name: Network Received
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: bytes/sec
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    rate(
+                      node_network_receive_bytes_total{device!="lo",instance=~"$instance",job="node-exporter"}[$__rate_interval]
+                    )
+                  seriesNameFormat: '{{instance}} - {{device}}'
+      "2_1":
+        kind: Panel
+        spec:
+          display:
+            description: node_network_transmit_bytes_total rate (excluding lo).
+            name: Network Transmitted
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: bytes/sec
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    rate(
+                      node_network_transmit_bytes_total{device!="lo",instance=~"$instance",job="node-exporter"}[$__rate_interval]
+                    )
+                  seriesNameFormat: '{{instance}} - {{device}}'
+    variables:
+    - kind: ListVariable
+      spec:
+        allowAllValue: true
+        allowMultiple: false
+        display:
+          hidden: false
+          name: instance
+        name: instance
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+              name: prometheus-datasource
+            labelName: instance
+            matchers:
+            - node_uname_info{job="node-exporter",sysname!="Darwin"}
+status: {}

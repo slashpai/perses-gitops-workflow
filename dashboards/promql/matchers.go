@@ -1,26 +1,32 @@
-// Package promql builds PromQL with promql-builder — queries are structurally valid at compile time.
+// Package promql builds PromQL with promql-builder — queries are validated at
+// build time via promqlbuilder.Validate (same pattern as community-mixins).
 //
 // SetLabelMatchersV2 is adapted from github.com/perses/community-mixins/pkg/promql/matchers.go.
 package promql
 
 import (
 	promqlbuilder "github.com/perses/promql-builder"
+	"github.com/perses/promql-builder/label"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
-// JobVarV2 is the standard Perses job template variable matcher.
-var JobVarV2 = &labels.Matcher{
-	Name:  "job",
-	Value: "$job",
-	Type:  labels.MatchRegexp,
-}
+// InstanceVarV2 is the Perses instance template variable matcher (node-exporter).
+var InstanceVarV2 = label.New("instance").EqualRegexp("$instance")
 
-// SetLabelMatchersV2 applies label matchers to every vector selector in the expression.
+// NodeJob is the default kube-prometheus-stack node-exporter job label
+// (prometheus-node-exporter.podLabels.jobLabel = node-exporter).
+var NodeJob = label.New("job").Equal("node-exporter")
+
+// SetLabelMatchersV2 applies label matchers to every vector selector, then
+// validates the resulting expression (including Perses dashboard variables).
 func SetLabelMatchersV2(query parser.Expr, matchers []*labels.Matcher) parser.Expr {
 	copy := promqlbuilder.DeepCopyExpr(query)
 	for _, l := range matchers {
 		copy = labelsSetPromQLV2(copy, l.Type, l.Name, l.Value)
+	}
+	if err := promqlbuilder.Validate(copy); err != nil {
+		panic(err)
 	}
 	return copy
 }

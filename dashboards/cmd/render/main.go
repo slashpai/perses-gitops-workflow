@@ -3,8 +3,8 @@
 // Usage:
 //
 //	go run ./cmd/render \
-//	  --project monitoring \
-//	  --datasource prometheus \
+//	  --project perses-dev \
+//	  --datasource prometheus-datasource \
 //	  --output-dir ../../manifests/dashboards
 package main
 
@@ -19,12 +19,12 @@ import (
 )
 
 func main() {
-	project := flag.String("project", "monitoring", "Perses project (CR namespace)")
-	datasource := flag.String("datasource", "prometheus", "Prometheus datasource name in Perses")
+	project := flag.String("project", "perses-dev", "Perses project (CR namespace)")
+	datasource := flag.String("datasource", "prometheus-datasource", "Prometheus datasource name in Perses")
 	outputDir := flag.String("output-dir", "../../manifests/dashboards", "directory for rendered YAML")
 	flag.Parse()
 
-	builder, err := build.ValidateBuilder(build.GoOverview(*project, *datasource))
+	builder, err := build.ValidateBuilder(build.NodeExporterNodes(*project, *datasource))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "render: %v\n", err)
 		os.Exit(1)
