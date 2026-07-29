@@ -22,23 +22,20 @@ kubectl apply -f deploy/metrics-usage/deployment.yaml
 kubectl -n perses-dev wait --for=condition=available deploy/metrics-usage --timeout=120s
 ```
 
-## Enabling the Argo CD PreSync check
+## Argo CD PreSync check
 
-The PreSync Job must be in the same path that the Argo CD Application syncs (`manifests/dashboards/`). Copy it there to enable:
+The PreSync Job is committed at `manifests/dashboards/presync-check.yaml` — Argo CD discovers the `argocd.argoproj.io/hook: PreSync` annotation and runs the Job **before** applying dashboards on every sync. No separate enablement is needed; the annotation is the trigger.
 
-```sh
-cp deploy/metrics-usage/presync-check.yaml manifests/dashboards/
-git add manifests/dashboards/presync-check.yaml && git commit -m "add PreSync metric check"
-```
+`make setup-argocd` automatically deploys `metrics-usage` if it isn't already running. Argo CD polls the Git remote every ~3 minutes (`timeout.reconciliation: 180s`); any change to `manifests/dashboards/` triggers an automated sync.
 
-On the next sync, Argo CD discovers the `argocd.argoproj.io/hook: PreSync` annotation and runs the Job before applying dashboards. The Job retries up to 5 times (configurable via `MAX_RETRIES` / `RETRY_INTERVAL` env vars) to handle cases where collectors are still running.
+The Job retries up to 5 times (configurable via `MAX_RETRIES` / `RETRY_INTERVAL` env vars) to handle cases where collectors are still running.
 
 ## Files
 
 | File | Purpose |
 | --- | --- |
 | `deployment.yaml` | ConfigMap + Deployment + Service for metrics-usage |
-| `presync-check.yaml` | Argo CD PreSync Job — copy to `manifests/dashboards/` to enable |
+| `../../manifests/dashboards/presync-check.yaml` | Argo CD PreSync Job (lives in the sync path) |
 
 ## Configuration
 

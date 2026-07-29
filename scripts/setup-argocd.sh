@@ -251,32 +251,14 @@ echo "Argo CD Application applied."
 echo "  Check sync:  kubectl get application ${APP_NAME} -n ${ARGOCD_NAMESPACE}"
 echo "  Dashboards:  kubectl get persesdashboard -n perses-dev"
 
-# --- Optional: PreSync metric validation ---
-PRESYNC_SRC="${ROOT_DIR}/deploy/metrics-usage/presync-check.yaml"
-PRESYNC_DST="${ROOT_DIR}/manifests/dashboards/presync-check.yaml"
-
-if [[ -n "${ENABLE_PRESYNC_CHECK}" ]]; then
-  enable_presync="${ENABLE_PRESYNC_CHECK}"
-elif [[ "${YES}" == "true" ]]; then
-  enable_presync="false"
+# --- Ensure metrics-usage is running (PreSync Job needs it) ---
+# presync-check.yaml is committed in manifests/dashboards/, so the hook
+# is always active. We just need the metrics-usage service available.
+if ! kubectl get deploy metrics-usage -n perses-dev >/dev/null 2>&1; then
+  echo "==> Deploying metrics-usage (required by PreSync hook)"
+  make -C "${ROOT_DIR}" setup-metrics-usage
 else
-  echo
-  read -r -p "Enable PreSync metric validation? (requires metrics-usage running) [y/N] " enable_presync
-  enable_presync="${enable_presync:-n}"
-fi
-
-if [[ "${enable_presync}" =~ ^[Yy] ]]; then
-  if ! kubectl get deploy metrics-usage -n perses-dev >/dev/null 2>&1; then
-    echo "  metrics-usage not found — deploying it first..."
-    make -C "${ROOT_DIR}" setup-metrics-usage
-  fi
-  cp "${PRESYNC_SRC}" "${PRESYNC_DST}"
-  echo "  PreSync check copied to manifests/dashboards/presync-check.yaml"
-  echo "  Commit and push to enable it on next Argo CD sync."
-else
-  # Remove if previously enabled
-  rm -f "${PRESYNC_DST}"
-  echo "  PreSync metric validation: skipped"
+  echo "==> metrics-usage already running"
 fi
 
 echo
