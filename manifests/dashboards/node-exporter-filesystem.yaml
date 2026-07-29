@@ -1,0 +1,79 @@
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  labels:
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/instance: node-exporter-filesystem
+    app.kubernetes.io/managed-by: perses-gitops-workflow
+    app.kubernetes.io/name: perses-dashboard
+    app.kubernetes.io/part-of: perses-operator
+  name: node-exporter-filesystem
+  namespace: perses-dev
+spec:
+  config:
+    display:
+      name: Node Exporter / Filesystem
+    duration: 1h
+    layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Filesystem
+        items:
+        - content:
+            $ref: '#/spec/panels/0_0'
+          height: 8
+          width: 24
+          x: 0
+          "y": 0
+    panels:
+      "0_0":
+        kind: Panel
+        spec:
+          display:
+            description: Used disk space ratio from node_filesystem_size/avail.
+            name: Filesystem Used
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: percent-decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |2-
+                        node_filesystem_size_bytes{fstype!="",instance=~"$instance",job="node-exporter",mountpoint!=""}
+                      -
+                        node_filesystem_avail_bytes{fstype!="",instance=~"$instance",job="node-exporter",mountpoint!=""}
+                    /
+                      node_filesystem_size_bytes{fstype!="",instance=~"$instance",job="node-exporter",mountpoint!=""}
+                  seriesNameFormat: '{{instance}} - {{mountpoint}}'
+    variables:
+    - kind: ListVariable
+      spec:
+        allowAllValue: true
+        allowMultiple: false
+        display:
+          hidden: false
+          name: instance
+        name: instance
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+              name: prometheus-datasource
+            labelName: instance
+            matchers:
+            - node_uname_info{job="node-exporter",sysname!="Darwin"}
+status: {}

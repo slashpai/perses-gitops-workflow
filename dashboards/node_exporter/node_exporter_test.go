@@ -66,3 +66,16 @@ func TestBuildNodesToPersesDashboardCR(t *testing.T) {
 		t.Errorf("yaml missing node-exporter PromQL:\n%s", output)
 	}
 }
+
+func TestBuildFilesystem(t *testing.T) {
+	builder, err := ValidateBuilder(BuildFilesystem("perses-dev", "prometheus-datasource"))
+	if err != nil {
+		t.Fatalf("BuildFilesystem: %v", err)
+	}
+	if builder.Dashboard.Metadata.Name != "node-exporter-filesystem" {
+		t.Fatalf("unexpected name: %s", builder.Dashboard.Metadata.Name)
+	}
+	if len(builder.Dashboard.Spec.Panels) == 0 {
+		t.Fatal("expected at least one panel")
+	}
+}

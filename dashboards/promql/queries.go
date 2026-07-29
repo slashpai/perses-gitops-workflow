@@ -86,3 +86,33 @@ func Load1(labelMatchers ...*labels.Matcher) parser.Expr {
 	base := vector.New(vector.WithMetricName("node_load1"))
 	return withNodeMatchers(base, labelMatchers...)
 }
+
+// FilesystemUsedRatio is (size - avail) / size for node_filesystem_* metrics.
+func FilesystemUsedRatio(labelMatchers ...*labels.Matcher) parser.Expr {
+	base := promqlbuilder.Div(
+		promqlbuilder.Sub(
+			vector.New(
+				vector.WithMetricName("node_filesystem_size_bytes"),
+				vector.WithLabelMatchers(
+					label.New("fstype").NotEqual(""),
+					label.New("mountpoint").NotEqual(""),
+				),
+			),
+			vector.New(
+				vector.WithMetricName("node_filesystem_avail_bytes"),
+				vector.WithLabelMatchers(
+					label.New("fstype").NotEqual(""),
+					label.New("mountpoint").NotEqual(""),
+				),
+			),
+		),
+		vector.New(
+			vector.WithMetricName("node_filesystem_size_bytes"),
+			vector.WithLabelMatchers(
+				label.New("fstype").NotEqual(""),
+				label.New("mountpoint").NotEqual(""),
+			),
+		),
+	)
+	return withNodeMatchers(base, labelMatchers...)
+}
