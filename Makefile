@@ -1,4 +1,4 @@
-.PHONY: validate render clean
+.PHONY: validate render setup-prerequisites cleanup
 
 PROJECT ?= perses-dev
 DATASOURCE ?= prometheus-datasource
@@ -13,5 +13,8 @@ render: validate
 		--datasource=$(DATASOURCE) \
 		--output-dir=../$(OUTPUT_DIR)
 
-clean:
-	rm -rf manifests/dashboards/*.yaml
+setup-prerequisites:
+	bash ./scripts/setup-prerequisites.sh
+
+cleanup:
+	bash ./scripts/cleanup.sh
