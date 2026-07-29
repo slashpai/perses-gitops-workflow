@@ -15,9 +15,6 @@ import (
 
 // BuildFilesystem builds a Node Exporter / Filesystem dashboard using
 // node_filesystem_* metrics.
-//
-// This copy intentionally ships broken PromQL so CI (make validate-dashboards)
-// demonstrates promqlbuilder.Validate catching the mistake before render/deploy.
 func BuildFilesystem(project, datasource string) (dashboard.Builder, error) {
 	return dashboard.New("node-exporter-filesystem",
 		dashboard.ProjectName(project),

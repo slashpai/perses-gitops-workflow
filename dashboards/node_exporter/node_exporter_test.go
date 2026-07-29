@@ -67,12 +67,15 @@ func TestBuildNodesToPersesDashboardCR(t *testing.T) {
 	}
 }
 
-// TestBuildFilesystem exercises the new dashboard path. It is expected to fail
-// on this demo branch: FilesystemUsedRatio is deliberately invalid so
-// promqlbuilder.Validate panics during query construction.
 func TestBuildFilesystem(t *testing.T) {
-	_, err := ValidateBuilder(BuildFilesystem("perses-dev", "prometheus-datasource"))
+	builder, err := ValidateBuilder(BuildFilesystem("perses-dev", "prometheus-datasource"))
 	if err != nil {
 		t.Fatalf("BuildFilesystem: %v", err)
+	}
+	if builder.Dashboard.Metadata.Name != "node-exporter-filesystem" {
+		t.Fatalf("unexpected name: %s", builder.Dashboard.Metadata.Name)
+	}
+	if len(builder.Dashboard.Spec.Panels) == 0 {
+		t.Fatal("expected at least one panel")
 	}
 }
