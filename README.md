@@ -53,7 +53,15 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
-![Argo CD Application synced](docs/img/argocd-app.png)
+![Argo CD Applications list — perses-dashboards Healthy / Synced](docs/img/argocd-app.png)
+
+Argo CD resource tree after the initial Nodes dashboard sync:
+
+![Argo CD synced node-exporter-nodes PersesDashboard](docs/img/synced-dashboard.png)
+
+After merging a new dashboard (Filesystem), both CRs sync:
+
+![Argo CD synced Nodes and Filesystem PersesDashboards](docs/img/synced-new-dashboard.png)
 
 **Node Exporter / Nodes** (CPU, load, memory, network).
 
