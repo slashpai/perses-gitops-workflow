@@ -62,10 +62,6 @@ kubectl -n perses-dev port-forward svc/perses-sample 8080:8080
 
 Intermittent ClusterIP/DNS issues are common with kind on Podman (especially with multiple clusters). Prefer one cluster; recreate with `make cleanup` / `make setup-prerequisites` if CoreDNS stays broken.
 
-## Note
-
-`dashboards/go.mod` temporarily `replace`s promql-builder with [`slashpai/promql-builder`](https://github.com/slashpai/promql-builder) until [perses/promql-builder#53](https://github.com/perses/promql-builder/pull/53) lands.
-
 ## Related
 
 - [perses-operator](https://github.com/perses/perses-operator)

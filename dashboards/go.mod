@@ -7,7 +7,7 @@ require (
 	github.com/perses/perses-operator v0.4.0
 	github.com/perses/plugins/prometheus v0.57.1
 	github.com/perses/plugins/timeserieschart v0.12.1
-	github.com/perses/promql-builder v0.2.1-0.20260106092606-e4909fea9c57
+	github.com/perses/promql-builder v0.2.1-0.20260729085143-2ecc15b73750
 	github.com/prometheus/prometheus v0.313.1
 	k8s.io/apimachinery v0.36.2
 	sigs.k8s.io/yaml v1.6.0
@@ -81,5 +81,3 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
 )
-
-replace github.com/perses/promql-builder => github.com/slashpai/promql-builder v0.0.0-20260728113358-1cc843277d48
