@@ -199,24 +199,27 @@ fi
 
 # Operator creates Prometheus/Alertmanager pods asynchronously — wait for each.
 echo "==> Waiting for kube-prometheus-stack pods"
-kubectl wait --for=condition=Ready pod \
-  -l app.kubernetes.io/name=prometheus-operator \
-  -n monitoring --timeout=180s
-for _ in $(seq 1 60); do
-  if kubectl get pods -n monitoring -l app.kubernetes.io/name=prometheus --no-headers 2>/dev/null | grep -q .; then
-    break
-  fi
-  sleep 5
-done
-kubectl wait --for=condition=Ready pod \
-  -l app.kubernetes.io/name=prometheus \
-  -n monitoring --timeout=300s
-kubectl wait --for=condition=Ready pod \
-  -l app.kubernetes.io/name=alertmanager \
-  -n monitoring --timeout=180s
-kubectl wait --for=condition=Ready pod \
-  -l app.kubernetes.io/name=prometheus-node-exporter \
-  -n monitoring --timeout=180s
+wait_for_labeled_pods() {
+  local label="$1"
+  local timeout_s="${2:-300}"
+  local deadline=$((SECONDS + timeout_s))
+  echo "    waiting for Ready pods (-l ${label})"
+  until kubectl get pods -n monitoring -l "${label}" --no-headers 2>/dev/null | grep -q .; do
+    if (( SECONDS >= deadline )); then
+      echo "error: timed out waiting for pods with label ${label}" >&2
+      kubectl get pods -n monitoring || true
+      return 1
+    fi
+    sleep 5
+  done
+  kubectl wait --for=condition=Ready pod -l "${label}" -n monitoring --timeout="${timeout_s}s"
+}
+
+# Chart labels the operator as kube-prometheus-stack-prometheus-operator (not prometheus-operator).
+wait_for_labeled_pods "app.kubernetes.io/name=kube-prometheus-stack-prometheus-operator" 180
+wait_for_labeled_pods "app.kubernetes.io/name=prometheus" 300
+wait_for_labeled_pods "app.kubernetes.io/name=alertmanager" 180
+wait_for_labeled_pods "app.kubernetes.io/name=prometheus-node-exporter" 180
 
 echo "==> perses-dev namespace + Perses server + datasource"
 kubectl create namespace perses-dev --dry-run=client -o yaml | kubectl apply -f -
@@ -235,8 +238,8 @@ echo "  Datasource name:     prometheus-datasource"
 echo "  Prometheus:          monitoring (minimal stack)"
 echo
 echo "Next:"
-echo "  make render"
 echo "  kubectl apply -f manifests/dashboards/"
-echo "  # or configure deploy/argocd/application.yaml and sync with Argo CD"
+echo "  # or GitOps: make setup-argocd"
+echo "  # after editing dashboards/: make render-dashboards"
 echo
 echo "UI: kubectl -n perses-dev port-forward svc/perses-sample 8080:8080"

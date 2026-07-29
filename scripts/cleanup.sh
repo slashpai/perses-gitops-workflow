@@ -146,6 +146,10 @@ choose_delete_kind() {
 }
 
 uninstall_stack() {
+  echo "==> Removing Argo CD Application / namespace"
+  kubectl delete application perses-dashboards -n argocd --ignore-not-found=true 2>/dev/null || true
+  kubectl delete namespace argocd --ignore-not-found=true --wait=false 2>/dev/null || true
+
   echo "==> Removing Perses resources / namespace"
   kubectl delete persesdashboard --all -n perses-dev --ignore-not-found=true 2>/dev/null || true
   kubectl delete persesdatasource --all -n perses-dev --ignore-not-found=true 2>/dev/null || true
@@ -183,6 +187,7 @@ elif [[ "${DELETE_KIND_CLUSTER}" == "true" ]]; then
   echo "Will delete kind cluster: ${CLUSTER_NAME}"
 else
   echo "Will uninstall demo stack from kind cluster: ${CLUSTER_NAME} (cluster kept)"
+  echo "  (Argo CD, Perses, kube-prometheus-stack, perses-operator, cert-manager)"
 fi
 echo
 
