@@ -21,8 +21,9 @@ make setup-prerequisites
 # Argo CD → sync manifests/dashboards + deploy metrics-usage for PreSync validation
 make setup-argocd
 
-# Verify semantic validation (optional — {} = all clear)
-make check-metrics
+# Verify semantic validation (optional)
+make check-metrics         # metric names exist in Prometheus
+make check-labels          # label matchers reference real labels
 
 # Tear down stack (or delete the kind cluster)
 make cleanup
@@ -48,30 +49,38 @@ make setup-argocd
 
 Perses UI: `kubectl -n perses-dev port-forward svc/perses-sample 8080:8080` → [http://localhost:8080](http://localhost:8080)
 
-See `[deploy/argocd/README.md](deploy/argocd/README.md)` for Argo CD UI, polling details, PreSync hook, and troubleshooting.
+See [`deploy/argocd/README.md`](deploy/argocd/README.md) for Argo CD UI, polling details, PreSync hook, and troubleshooting.
 
-Argo CD Applications list — perses-dashboards Healthy / Synced
+![Argo CD Applications list — perses-dashboards Healthy / Synced](docs/img/argocd-app.png)
 
 **Node Exporter / Nodes** (CPU, load, memory, network) and **Filesystem** (used disk space ratio):
 
-Node Exporter / Nodes dashboard in PersesNode Exporter / Filesystem dashboard in Perses
+![Node Exporter / Nodes dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
+
+![Node Exporter / Filesystem dashboard in Perses](docs/img/perses-node-exporter-fs-dashboard-demo.png)
 
 ## CI
 
-`make validate-dashboards` → `make render-dashboards` → fail if `manifests/dashboards/` drifts.
+`make render-dashboards` (runs `validate-dashboards` first) → fail if validation fails or `manifests/dashboards/` drifts.
 
 ## Semantic validation with metrics-usage
 
-[metrics-usage](https://github.com/perses/metrics-usage) cross-references dashboard PromQL against a live Prometheus — catching references to metrics that don't exist.[metrics-usage](https://github.com/perses/metrics-usage).
+[metrics-usage](https://github.com/perses/metrics-usage) cross-references dashboard PromQL against a live Prometheus — catching references to metrics that don't exist.
 
 ```sh
 make setup-metrics-usage   # deploy metrics-usage (after setup-prerequisites)
 make check-metrics         # query pending_usages — {} = all clear
+make check-labels          # verify label matchers against Prometheus labels
 ```
 
-Collectors run once on startup, then refresh daily (`period: 1d`). The `check-metrics` target queries the `/api/v1/pending_usages` endpoint — any metrics referenced in dashboards but not found in Prometheus will be listed.
+| Target | What it checks |
+|---|---|
+| `check-metrics` | Metric names referenced in dashboards exist in Prometheus |
+| `check-labels` | Label matchers in PromQL reference labels that exist on the metric |
 
-A PreSync Job gates every Argo CD sync — see `[deploy/argocd/README.md](deploy/argocd/README.md)` and `[deploy/metrics-usage/README.md](deploy/metrics-usage/README.md)` for details.
+Collectors run once on startup, then refresh daily (`period: 1d`). A PreSync Job gates every Argo CD sync. See [`deploy/argocd/README.md`](deploy/argocd/README.md) and [`deploy/metrics-usage/README.md`](deploy/metrics-usage/README.md) for details.
+
+![Argo CD resource tree showing PreSync check-dashboard-metrics Job](docs/img/metrics-usage-as-presync-hook.png)
 
 ## Related
 
@@ -80,8 +89,6 @@ A PreSync Job gates every Argo CD sync — see `[deploy/argocd/README.md](deploy
 - [promql-builder](https://github.com/perses/promql-builder)
 - [community-mixins](https://github.com/perses/community-mixins)
 - [metrics-usage](https://github.com/perses/metrics-usage)
-
-
 
 ## License
 

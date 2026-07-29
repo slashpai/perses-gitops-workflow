@@ -17,11 +17,8 @@ jobs:
           go-version-file: dashboards/go.mod
           cache-dependency-path: dashboards/go.sum
 
-      - name: Validate PromQL and dashboard build
-        run: make validate-dashboards
-
-      - name: Render PersesDashboard manifests
+      - name: Validate and render dashboards
         run: make render-dashboards
 
-      - name: Fail if committed manifests drift from render
+      - name: Fail if manifests drift
         run: git diff --exit-code manifests/dashboards/

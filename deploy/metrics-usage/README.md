@@ -1,6 +1,6 @@
 # metrics-usage — semantic validation for dashboards
 
-Deploys [metrics-usage](https://github.com/perses/metrics-usage) alongside Perses to validate that dashboard PromQL references real metrics and labels in Prometheus.
+Deploys [metrics-usage](https://github.com/perses/metrics-usage) alongside Perses to validate that dashboard PromQL references real metrics in Prometheus.
 
 ## How it works
 
@@ -13,6 +13,7 @@ Deploys [metrics-usage](https://github.com/perses/metrics-usage) alongside Perse
 ```sh
 make setup-metrics-usage   # apply manifests, wait for pod ready
 make check-metrics         # query pending_usages — {} = all clear
+make check-labels          # verify label matchers against Prometheus labels
 ```
 
 Or manually:
