@@ -1,4 +1,4 @@
-.PHONY: validate-dashboards render-dashboards setup-prerequisites setup-argocd setup-metrics-usage check-metrics cleanup
+.PHONY: validate-dashboards render-dashboards setup-prerequisites setup-argocd setup-metrics-usage check-metrics check-labels cleanup
 
 PROJECT ?= perses-dev
 DATASOURCE ?= prometheus-datasource
@@ -37,6 +37,17 @@ check-metrics:
 		echo "WARN: Dashboards reference metrics not found in Prometheus:"; \
 		echo "$$PENDING"; \
 	fi
+
+check-labels:
+	@kubectl -n perses-dev port-forward svc/metrics-usage 18080:8080 >/dev/null 2>&1 & \
+	PF_PID=$$!; \
+	sleep 2; \
+	cd dashboards && go run ./cmd/checklabels \
+		--manifests=../$(OUTPUT_DIR) \
+		--metrics-usage-url=http://localhost:18080; \
+	EXIT=$$?; \
+	kill $$PF_PID 2>/dev/null; \
+	exit $$EXIT
 
 cleanup:
 	bash ./scripts/cleanup.sh
