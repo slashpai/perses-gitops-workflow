@@ -1,12 +1,13 @@
 # Perses dashboard-as-code (GitOps example)
 
-Author dashboards in Go, validate PromQL before render, generate `PersesDashboard` CRs, then deploy with kubectl or Argo CD. The YAML under `manifests/dashboards/` is the **delivery artifact** — source of truth is `dashboards/`.
+Author dashboards in Go, validate PromQL at build time, verify metrics and labels against a live Prometheus, generate `PersesDashboard` CRs, and deploy with Argo CD. The YAML under `manifests/dashboards/` is the **delivery artifact** — source of truth is `dashboards/`.
 
 1. **Author** in Go (`dashboards/`) with the [Perses Go SDK](https://github.com/perses/perses) and [promql-builder](https://github.com/perses/promql-builder)
-2. **Validate** — `promqlbuilder.Validate` / `equalRegexp` catch bad PromQL on the Go path
+2. **Validate** — structural PromQL checks at build time (`promqlbuilder.Validate`)
 3. **Render** `PersesDashboard` CRs (`make render-dashboards`)
-4. **Commit** manifests under `manifests/dashboards/`
-5. **Sync** with Argo CD (or `kubectl apply`) → [perses-operator](https://github.com/perses/perses-operator) reconciles
+4. **Verify** — semantic checks against live Prometheus via [metrics-usage](https://github.com/perses/metrics-usage) (`make check-metrics`, `make check-labels`)
+5. **Commit** manifests under `manifests/dashboards/`
+6. **Sync** with Argo CD (or `kubectl apply`) → PreSync hook gates deploy, [perses-operator](https://github.com/perses/perses-operator) reconciles
 
 ## Quick start
 
