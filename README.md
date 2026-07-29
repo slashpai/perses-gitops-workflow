@@ -21,6 +21,10 @@ make setup-prerequisites
 # Argo CD → sync manifests/dashboards (push main first; prompts for fork repoURL)
 make setup-argocd
 
+# (Optional) Deploy metrics-usage for semantic validation
+make setup-metrics-usage
+make check-metrics
+
 # Tear down stack (or delete the kind cluster)
 make cleanup
 ```
@@ -67,9 +71,34 @@ After merging a new dashboard (Filesystem), both CRs sync:
 
 ![Node Exporter / Nodes dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
 
+**Node Exporter / Filesystem** (used disk space ratio).
+
+![Node Exporter / Filesystem dashboard in Perses](docs/img/perses-node-exporter-fs-dashboard-demo.png)
+
 ## CI
 
 `make validate-dashboards` → `make render-dashboards` → fail if `manifests/dashboards/` drifts.
+
+## Semantic validation with metrics-usage
+
+[metrics-usage](https://github.com/perses/metrics-usage) cross-references dashboard PromQL against a live Prometheus — catching missing metrics and label typos that structural validation cannot.
+
+```sh
+make setup-metrics-usage   # deploy metrics-usage (after setup-prerequisites)
+make check-metrics         # query pending_usages — {} = all clear
+```
+
+Collectors run once on startup, then refresh daily (`period: 1d`). The `check-metrics` target queries the `/api/v1/pending_usages` endpoint — any metrics referenced in dashboards but not found in Prometheus will be listed.
+
+To gate Argo CD syncs on metric validation, `make setup-argocd` prompts you to enable the PreSync check. It deploys metrics-usage if needed and copies the PreSync Job into `manifests/dashboards/`.
+
+Non-interactive:
+
+```sh
+ENABLE_PRESYNC_CHECK=true make setup-argocd
+```
+
+Or manually: `cp deploy/metrics-usage/presync-check.yaml manifests/dashboards/` and commit. Argo CD discovers the `argocd.argoproj.io/hook: PreSync` annotation and runs the Job before every sync. See [`deploy/metrics-usage/README.md`](deploy/metrics-usage/README.md).
 
 ## Troubleshooting
 
@@ -83,6 +112,7 @@ Intermittent ClusterIP/DNS issues are common with kind on Podman (especially wit
 - [perses-operator-examples](https://github.com/slashpai/perses-operator-examples)
 - [promql-builder](https://github.com/perses/promql-builder)
 - [community-mixins](https://github.com/perses/community-mixins)
+- [metrics-usage](https://github.com/perses/metrics-usage)
 
 ## License
 
