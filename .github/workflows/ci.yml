@@ -21,7 +21,7 @@ jobs:
         run: make validate
 
       - name: Render PersesDashboard manifests
-        run: make render PROJECT=monitoring DATASOURCE=prometheus
+        run: make render
 
       - name: Fail if committed manifests drift from render
         run: git diff --exit-code manifests/dashboards/

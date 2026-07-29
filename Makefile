@@ -1,7 +1,7 @@
 .PHONY: validate render clean
 
-PROJECT ?= monitoring
-DATASOURCE ?= prometheus
+PROJECT ?= perses-dev
+DATASOURCE ?= prometheus-datasource
 OUTPUT_DIR ?= manifests/dashboards
 
 validate:

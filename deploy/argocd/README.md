@@ -1,17 +1,10 @@
 # Example Argo CD Application
 
-Watches `manifests/dashboards/` in this repository and applies `PersesDashboard` resources.
-
-## Prerequisites
-
-- Argo CD installed
-- `perses-operator` **v0.4+** CRDs and controller running in the target cluster (v1alpha2 `PersesDashboard`)
-- Namespace `monitoring` exists (matches default `--project` in `make render`)
-
-## Apply
+Syncs `manifests/dashboards/` into namespace `perses-dev`.
 
 ```sh
-kubectl apply -f application.yaml
+make setup-prerequisites   # cluster + minimal Prometheus stack
+# Edit repoURL in application.yaml to your fork, then:
+kubectl apply -f deploy/argocd/application.yaml
+kubectl get persesdashboard -n perses-dev
 ```
-
-Edit `spec.source.repoURL` in `application.yaml` to your fork (`https://github.com/<your-user>/perses-gitops-workflow.git`).

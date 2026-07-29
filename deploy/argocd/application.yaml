@@ -11,7 +11,7 @@ spec:
     path: manifests/dashboards
   destination:
     server: https://kubernetes.default.svc
-    namespace: monitoring
+    namespace: perses-dev
   syncPolicy:
     automated:
       prune: true
