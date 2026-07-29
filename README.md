@@ -44,6 +44,13 @@ make setup-argocd
 
 # Perses UI
 kubectl -n perses-dev port-forward svc/perses-sample 8080:8080
+# → http://localhost:8080
+
+# Argo CD UI
+kubectl -n argocd port-forward svc/argocd-server 8443:443
+# → https://localhost:8443 (user: admin)
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
 ![Argo CD Application synced](docs/img/argocd-app.png)
