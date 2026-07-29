@@ -12,6 +12,7 @@ YES="${YES:-false}"
 ARGOCD_NAMESPACE="${ARGOCD_NAMESPACE:-argocd}"
 APP_NAME="${APP_NAME:-perses-dashboards}"
 SYNC_TIMEOUT_S="${SYNC_TIMEOUT_S:-180}"
+ENABLE_PRESYNC_CHECK="${ENABLE_PRESYNC_CHECK:-}"
 
 need() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -249,6 +250,35 @@ echo
 echo "Argo CD Application applied."
 echo "  Check sync:  kubectl get application ${APP_NAME} -n ${ARGOCD_NAMESPACE}"
 echo "  Dashboards:  kubectl get persesdashboard -n perses-dev"
+
+# --- Optional: PreSync metric validation ---
+PRESYNC_SRC="${ROOT_DIR}/deploy/metrics-usage/presync-check.yaml"
+PRESYNC_DST="${ROOT_DIR}/manifests/dashboards/presync-check.yaml"
+
+if [[ -n "${ENABLE_PRESYNC_CHECK}" ]]; then
+  enable_presync="${ENABLE_PRESYNC_CHECK}"
+elif [[ "${YES}" == "true" ]]; then
+  enable_presync="false"
+else
+  echo
+  read -r -p "Enable PreSync metric validation? (requires metrics-usage running) [y/N] " enable_presync
+  enable_presync="${enable_presync:-n}"
+fi
+
+if [[ "${enable_presync}" =~ ^[Yy] ]]; then
+  if ! kubectl get deploy metrics-usage -n perses-dev >/dev/null 2>&1; then
+    echo "  metrics-usage not found — deploying it first..."
+    make -C "${ROOT_DIR}" setup-metrics-usage
+  fi
+  cp "${PRESYNC_SRC}" "${PRESYNC_DST}"
+  echo "  PreSync check copied to manifests/dashboards/presync-check.yaml"
+  echo "  Commit and push to enable it on next Argo CD sync."
+else
+  # Remove if previously enabled
+  rm -f "${PRESYNC_DST}"
+  echo "  PreSync metric validation: skipped"
+fi
+
 echo
 echo "Optional UI:"
 echo "  kubectl -n ${ARGOCD_NAMESPACE} port-forward svc/argocd-server 8443:443"
