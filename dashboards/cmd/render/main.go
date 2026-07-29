@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 
 	"github.com/slashpai/perses-gitops-workflow/dashboards/build"
+	nodeexporter "github.com/slashpai/perses-gitops-workflow/dashboards/node_exporter"
+
 	k8syaml "sigs.k8s.io/yaml"
 )
 
@@ -24,7 +26,7 @@ func main() {
 	outputDir := flag.String("output-dir", "../../manifests/dashboards", "directory for rendered YAML")
 	flag.Parse()
 
-	builder, err := build.ValidateBuilder(build.NodeExporterNodes(*project, *datasource))
+	builder, err := nodeexporter.ValidateBuilder(nodeexporter.BuildNodes(*project, *datasource))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "render: %v\n", err)
 		os.Exit(1)

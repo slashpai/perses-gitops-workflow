@@ -1,17 +1,19 @@
-package build
+package nodeexporter
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/slashpai/perses-gitops-workflow/dashboards/build"
+
 	operatorv2 "github.com/perses/perses-operator/api/v1alpha2"
 	k8syaml "sigs.k8s.io/yaml"
 )
 
-func TestNodeExporterNodesBuilds(t *testing.T) {
-	builder, err := ValidateBuilder(NodeExporterNodes("perses-dev", "prometheus-datasource"))
+func TestBuildNodes(t *testing.T) {
+	builder, err := ValidateBuilder(BuildNodes("perses-dev", "prometheus-datasource"))
 	if err != nil {
-		t.Fatalf("NodeExporterNodes: %v", err)
+		t.Fatalf("BuildNodes: %v", err)
 	}
 
 	if builder.Dashboard.Metadata.Name != "node-exporter-nodes" {
@@ -25,13 +27,13 @@ func TestNodeExporterNodesBuilds(t *testing.T) {
 	}
 }
 
-func TestToPersesDashboardCR_v1alpha2(t *testing.T) {
-	builder, err := ValidateBuilder(NodeExporterNodes("perses-dev", "prometheus-datasource"))
+func TestBuildNodesToPersesDashboardCR(t *testing.T) {
+	builder, err := ValidateBuilder(BuildNodes("perses-dev", "prometheus-datasource"))
 	if err != nil {
-		t.Fatalf("NodeExporterNodes: %v", err)
+		t.Fatalf("BuildNodes: %v", err)
 	}
 
-	cr := ToPersesDashboard(builder)
+	cr := build.ToPersesDashboard(builder)
 	pd, ok := cr.(*operatorv2.PersesDashboard)
 	if !ok {
 		t.Fatalf("expected *operatorv2.PersesDashboard, got %T", cr)

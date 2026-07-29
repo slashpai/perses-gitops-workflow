@@ -9,8 +9,7 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
-// Queries mirror community-mixins node-exporter panels
-// (pkg/panels/node_exporter), simplified for this GitOps demo.
+// Queries for node-exporter dashboard panels.
 
 func withNodeMatchers(base parser.Expr, extra ...*labels.Matcher) parser.Expr {
 	matchers := append([]*labels.Matcher{NodeJob, InstanceVarV2}, extra...)

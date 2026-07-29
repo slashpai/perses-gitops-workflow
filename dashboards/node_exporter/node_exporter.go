@@ -1,4 +1,4 @@
-package build
+package nodeexporter
 
 import (
 	"fmt"
@@ -21,10 +21,9 @@ var (
 	decimalUnit         = string(commonSdk.DecimalUnit)
 )
 
-// NodeExporterNodes builds a Node Exporter / Nodes style dashboard
-// (inspired by community-mixins BuildNodeExporterNodes) for GitOps demos.
+// BuildNodes builds a Node Exporter / Nodes dashboard for GitOps demos.
 // PromQL uses promql-builder + Validate — not hand-written YAML strings.
-func NodeExporterNodes(project, datasource string) (dashboard.Builder, error) {
+func BuildNodes(project, datasource string) (dashboard.Builder, error) {
 	return dashboard.New("node-exporter-nodes",
 		dashboard.ProjectName(project),
 		dashboard.Name("Node Exporter / Nodes"),
@@ -42,7 +41,7 @@ func NodeExporterNodes(project, datasource string) (dashboard.Builder, error) {
 			panelgroup.PanelsPerLine(2),
 			panelgroup.PanelHeight(8),
 			panelgroup.AddPanel("CPU Usage",
-				panel.Description("CPU busy ratio (1 − idle) — community-mixins style query via promql-builder + Validate."),
+				panel.Description("CPU busy ratio (1 − idle) via promql-builder + Validate."),
 				timeSeriesPanel.Chart(
 					timeSeriesPanel.WithYAxis(timeSeriesPanel.YAxis{
 						Format: &commonSdk.Format{Unit: &percentDecimalUnit},

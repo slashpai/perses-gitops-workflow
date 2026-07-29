@@ -65,8 +65,7 @@ spec:
         kind: Panel
         spec:
           display:
-            description: CPU busy ratio (1 − idle) — community-mixins style query
-              via promql-builder + Validate.
+            description: CPU busy ratio (1 − idle) via promql-builder + Validate.
             name: CPU Usage
           plugin:
             kind: TimeSeriesChart

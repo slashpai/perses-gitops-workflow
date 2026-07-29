@@ -1,7 +1,5 @@
 // Package promql builds PromQL with promql-builder — queries are validated at
-// build time via promqlbuilder.Validate (same pattern as community-mixins).
-//
-// SetLabelMatchersV2 is adapted from github.com/perses/community-mixins/pkg/promql/matchers.go.
+// build time via promqlbuilder.Validate.
 package promql
 
 import (
