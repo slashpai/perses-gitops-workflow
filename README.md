@@ -45,7 +45,7 @@ make setup-argocd
 
 Perses UI: `kubectl -n perses-dev port-forward svc/perses-sample 8080:8080` → [http://localhost:8080](http://localhost:8080)
 
-The Argo CD setup here is for **demo purposes** — for production, follow the [Argo CD documentation](https://argo-cd.readthedocs.io/en/stable/). See [`deploy/argocd/README.md`](deploy/argocd/README.md) for UI, polling details, and troubleshooting.
+The Argo CD setup here is for **demo purposes**, for production, follow the [Argo CD documentation](https://argo-cd.readthedocs.io/en/stable/). See [`deploy/argocd/README.md`](deploy/argocd/README.md) for UI, polling details, and troubleshooting.
 
 ![Argo CD Applications list — perses-dashboards Healthy / Synced](docs/img/argocd-app.png)
 
@@ -65,7 +65,7 @@ The Argo CD setup here is for **demo purposes** — for production, follow the [
 
 ## Optional: semantic validation with metrics-usage
 
-For Day-2 auditing of metric names and labels against a live Prometheus, see [`deploy/metrics-usage/README.md`](deploy/metrics-usage/README.md).
+For Day-2 auditing of metric names and labels against a live Prometheus, see [`deploy/metrics-usage/README.md`](deploy/metrics-usage/README.md). Use a **CronJob** for scheduled drift checks or a one-off **Job** for local/CI validation.
 
 ## Related
 

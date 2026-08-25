@@ -252,7 +252,7 @@ echo "  Dashboards:  kubectl get persesdashboard -n perses-dev"
 
 echo
 echo "Optional:"
-echo "  make setup-metrics-usage  # deploy metrics-usage for semantic checks"
+echo "  make setup-metrics-usage  # deploy daily metrics-usage CronJob"
 echo
 echo "UI:"
 echo "  kubectl -n ${ARGOCD_NAMESPACE} port-forward svc/argocd-server 8443:443"
