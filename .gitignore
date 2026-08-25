@@ -2,6 +2,9 @@
 .idea/
 .vscode/
 
+# Local scratch (not for commit)
+tmp/
+
 # Go
 dashboards/bin/
 dashboards/checklabels
