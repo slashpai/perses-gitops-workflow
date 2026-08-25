@@ -1,0 +1,75 @@
+# On-demand audit: start metrics-usage, wait for collectors, check pending_usages, exit.
+# Use for make check-metrics, make check-labels, or CI against a staging cluster.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: metrics-usage-audit
+  namespace: perses-dev
+  labels:
+    app.kubernetes.io/name: metrics-usage-audit
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: metrics-usage-audit
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: metrics-usage
+          image: persesdev/metrics-usage:latest
+          args:
+            - "--config=/etc/metrics-usage/config.yaml"
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/metrics-usage
+              readOnly: true
+        - name: audit
+          image: curlimages/curl:latest
+          env:
+            - name: METRICS_USAGE_URL
+              value: "http://localhost:8080"
+            - name: MAX_RETRIES
+              value: "30"
+            - name: RETRY_INTERVAL
+              value: "10"
+            # Hold the API after metrics check so make check-labels can port-forward.
+            - name: HOLD_SECONDS
+              value: "120"
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              ATTEMPT=0
+              while [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; do
+                ATTEMPT=$((ATTEMPT + 1))
+                if curl -sf "${METRICS_USAGE_URL}/api/v1/metrics" >/dev/null 2>&1; then
+                  break
+                fi
+                echo "Waiting for metrics-usage API (${ATTEMPT}/${MAX_RETRIES})..."
+                sleep "$RETRY_INTERVAL"
+              done
+              if [ "$ATTEMPT" -ge "$MAX_RETRIES" ]; then
+                echo "FAIL: metrics-usage API unreachable"
+                exit 1
+              fi
+
+              PENDING=$(curl -sf "${METRICS_USAGE_URL}/api/v1/pending_usages")
+              if [ "$PENDING" = "{}" ]; then
+                echo "OK: All dashboard metrics exist in Prometheus"
+              else
+                echo "FAIL: Dashboards reference metrics not found in Prometheus:"
+                echo "$PENDING"
+                exit 1
+              fi
+
+              echo "Holding API for ${HOLD_SECONDS}s (make check-labels can port-forward now)..."
+              sleep "$HOLD_SECONDS"
+      volumes:
+        - name: config
+          configMap:
+            name: metrics-usage-config
