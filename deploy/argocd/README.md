@@ -1,22 +1,18 @@
 # Argo CD Application
 
+> **Note:** This setup is intended for **demo purposes only**. For production deployments, follow the [Argo CD documentation](https://argo-cd.readthedocs.io/en/stable/).
+
 Template Application that syncs `manifests/dashboards/` into `perses-dev`.
 
 ```sh
 make setup-argocd
 ```
 
-Prompts for `repoURL`, validates it, checks the remote revision exists, installs Argo CD if needed, waits for repo-server readiness, applies this Application, waits for sync, and deploys `metrics-usage` for PreSync validation. The committed YAML keeps a `<your-user>` placeholder; the script substitutes your URL at apply time.
+Prompts for `repoURL`, validates it, checks the remote revision exists, installs Argo CD if needed, waits for repo-server readiness, applies this Application, and waits for sync. The committed YAML keeps a `<your-user>` placeholder; the script substitutes your URL at apply time.
 
 ## How Argo CD discovers changes
 
 Argo CD **polls** the Git remote every **~3 minutes** (`timeout.reconciliation: 180s` by default). When the HEAD commit on `main` changes, Argo CD diffs all manifests under the configured `path` (`manifests/dashboards/`). Any new, modified, or deleted file triggers a sync because `syncPolicy.automated` is enabled.
-
-## PreSync hook
-
-The hook is activated by the **presence** of `presync-check.yaml` in the sync path — no separate enablement is needed. Argo CD reads the `argocd.argoproj.io/hook: PreSync` annotation on the Job and automatically runs it **before** applying dashboards. If the Job fails (e.g. unresolved metrics), the sync is blocked.
-
-See [`../metrics-usage/README.md`](../metrics-usage/README.md) for collector configuration and scaling notes.
 
 ## UI
 
@@ -34,12 +30,6 @@ Trigger an immediate sync without waiting for the next poll:
 ```sh
 kubectl -n argocd patch application perses-dashboards --type merge \
   -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"revision":"HEAD"}}}'
-```
-
-Watch the PreSync Job logs:
-
-```sh
-kubectl logs -n perses-dev job/check-dashboard-metrics -f
 ```
 
 ## Troubleshooting
