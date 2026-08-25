@@ -12,7 +12,6 @@ YES="${YES:-false}"
 ARGOCD_NAMESPACE="${ARGOCD_NAMESPACE:-argocd}"
 APP_NAME="${APP_NAME:-perses-dashboards}"
 SYNC_TIMEOUT_S="${SYNC_TIMEOUT_S:-180}"
-ENABLE_PRESYNC_CHECK="${ENABLE_PRESYNC_CHECK:-}"
 
 need() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -251,18 +250,11 @@ echo "Argo CD Application applied."
 echo "  Check sync:  kubectl get application ${APP_NAME} -n ${ARGOCD_NAMESPACE}"
 echo "  Dashboards:  kubectl get persesdashboard -n perses-dev"
 
-# --- Ensure metrics-usage is running (PreSync Job needs it) ---
-# presync-check.yaml is committed in manifests/dashboards/, so the hook
-# is always active. We just need the metrics-usage service available.
-if ! kubectl get deploy metrics-usage -n perses-dev >/dev/null 2>&1; then
-  echo "==> Deploying metrics-usage (required by PreSync hook)"
-  make -C "${ROOT_DIR}" setup-metrics-usage
-else
-  echo "==> metrics-usage already running"
-fi
-
 echo
-echo "Optional UI:"
+echo "Optional:"
+echo "  make setup-metrics-usage  # deploy metrics-usage for semantic checks"
+echo
+echo "UI:"
 echo "  kubectl -n ${ARGOCD_NAMESPACE} port-forward svc/argocd-server 8443:443"
 echo "  # admin password: kubectl -n ${ARGOCD_NAMESPACE} get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
 echo "  # open https://localhost:8443  (accept the self-signed cert)"
