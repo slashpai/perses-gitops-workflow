@@ -28,7 +28,7 @@ func ToPersesDashboard(builder dashboard.Builder) runtime.Object {
 		},
 		Spec: operatorv2.PersesDashboardSpec{
 			Config: operatorv2.Dashboard{
-				DashboardSpec: builder.Dashboard.Spec,
+				Spec: builder.Dashboard.Spec,
 			},
 		},
 	}

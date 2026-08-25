@@ -33,6 +33,7 @@ func main() {
 	}{
 		{"node-exporter-nodes", nodeexporter.BuildNodes},
 		{"node-exporter-filesystem", nodeexporter.BuildFilesystem},
+		{"node-exporter-composable", nodeexporter.BuildComposable},
 	}
 
 	if err := os.MkdirAll(*outputDir, 0o755); err != nil {
