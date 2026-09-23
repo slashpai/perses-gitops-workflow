@@ -65,7 +65,7 @@ The Argo CD setup here is for **demo purposes**, for production, follow the [Arg
 
 ## Optional: semantic validation with metrics-usage
 
-For Day-2 auditing of metric names and labels against a live Prometheus, see [`deploy/metrics-usage/README.md`](deploy/metrics-usage/README.md). Use a **CronJob** for scheduled drift checks or a one-off **Job** for local/CI validation.
+For Day-2 auditing of metric names and labels against a live Prometheus, see [`docs/metrics-usage.md`](docs/metrics-usage.md). Use a **CronJob** for scheduled drift checks or a one-off **Job** for local/CI validation.
 
 ## Related
 

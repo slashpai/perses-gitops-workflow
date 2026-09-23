@@ -7,5 +7,5 @@ tmp/
 
 # Go
 dashboards/bin/
-dashboards/checklabels
 dashboards/render
+hack/checklabels/checklabels
