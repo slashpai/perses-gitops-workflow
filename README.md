@@ -53,11 +53,9 @@ The Argo CD setup here is for **demo purposes**, for production, follow the [Arg
 
 ![Argo CD synced new dashboard resource](docs/img/synced-new-dashboard.png)
 
-**Node Exporter / Nodes** (CPU, load, memory, network) and **Filesystem** (used disk space ratio):
+**Node Exporter / Overview** — community-mixins CPU/Memory (kube-prometheus `job="node-exporter"` matchers) + custom Filesystem panel:
 
-![Node Exporter / Nodes dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
-
-![Node Exporter / Filesystem dashboard in Perses](docs/img/perses-node-exporter-fs-dashboard-demo.png)
+![Node Exporter / Overview dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
 
 ## CI
 
