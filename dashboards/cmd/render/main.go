@@ -31,9 +31,7 @@ func main() {
 		name  string
 		build func(string, string) (dashboard.Builder, error)
 	}{
-		{"node-exporter-nodes", nodeexporter.BuildNodes},
-		{"node-exporter-filesystem", nodeexporter.BuildFilesystem},
-		{"node-exporter-composable", nodeexporter.BuildComposable},
+		{"node-exporter-overview", nodeexporter.BuildOverview},
 	}
 
 	if err := os.MkdirAll(*outputDir, 0o755); err != nil {

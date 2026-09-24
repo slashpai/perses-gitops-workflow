@@ -1,6 +1,6 @@
-// Composable dashboard example — imports reusable panels from community-mixins
-// and extends them with a custom filesystem panel. Inspired by:
-// https://perses.dev/blog/2025/06/10/composable-dashboards----lessons-from-building-perses-community-dashboards/
+// Node Exporter overview — imports reusable panels from community-mixins
+// and extends them with a custom filesystem panel.
+
 package nodeexporter
 
 import (
@@ -19,20 +19,20 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 )
 
-// BuildComposable builds a dashboard that demonstrates composability:
+// BuildOverview builds the Node Exporter / Overview dashboard:
 //   - CPU and Memory panels are imported from community-mixins (reuse)
 //   - Filesystem panel is written locally (extend)
 //
 // This is the pattern recommended by the community-mixins project:
 // import panels as Go modules, customise label matchers for your
 // environment, and add panels for workload-specific needs.
-func BuildComposable(project, datasource string) (dashboard.Builder, error) {
+func BuildOverview(project, datasource string) (dashboard.Builder, error) {
 	jobMatcher := &labels.Matcher{Name: "job", Type: labels.MatchEqual, Value: "node-exporter"}
 	instanceMatcher := &labels.Matcher{Name: "instance", Type: labels.MatchRegexp, Value: "$instance"}
 
-	return dashboard.New("node-exporter-composable",
+	return dashboard.New("node-exporter-overview",
 		dashboard.ProjectName(project),
-		dashboard.Name("Node Exporter / Composable"),
+		dashboard.Name("Node Exporter / Overview"),
 		dashboard.AddVariable("instance",
 			listvariable.List(
 				labelvalues.PrometheusLabelValues("instance",

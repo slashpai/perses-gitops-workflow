@@ -8,19 +8,20 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
-func TestCPUUsageIdleRatioProducesExpectedPromQL(t *testing.T) {
-	expr := CPUUsageIdleRatio(
+func TestFilesystemUsedRatioProducesExpectedPromQL(t *testing.T) {
+	expr := FilesystemUsedRatio(
 		label.New("cluster").Equal("$cluster"),
 	)
 	query := expr.Pretty(0)
 
 	for _, want := range []string{
-		`node_cpu_seconds_total`,
-		`mode="idle"`,
+		`node_filesystem_size_bytes`,
+		`node_filesystem_avail_bytes`,
 		`job="node-exporter"`,
 		`instance=~"$instance"`,
 		`cluster="$cluster"`,
-		`$__rate_interval`,
+		`fstype!=""`,
+		`mountpoint!=""`,
 	} {
 		if !strings.Contains(query, want) {
 			t.Fatalf("query missing %q:\n%s", want, query)
@@ -28,8 +29,8 @@ func TestCPUUsageIdleRatioProducesExpectedPromQL(t *testing.T) {
 	}
 }
 
-func TestCPUUsageIdleRatioPassesValidate(t *testing.T) {
-	expr := CPUUsageIdleRatio()
+func TestFilesystemUsedRatioPassesValidate(t *testing.T) {
+	expr := FilesystemUsedRatio()
 	if expr == nil {
 		t.Fatal("expected non-nil expression")
 	}
@@ -38,7 +39,7 @@ func TestCPUUsageIdleRatioPassesValidate(t *testing.T) {
 func TestInvalidExpressionPanicsOnValidate(t *testing.T) {
 	expr := &parser.BinaryExpr{
 		Op:  parser.ADD,
-		LHS: CPUUsageIdleRatio(),
+		LHS: FilesystemUsedRatio(),
 	}
 	defer func() {
 		if r := recover(); r == nil {

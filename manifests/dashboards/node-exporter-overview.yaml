@@ -3,16 +3,16 @@ kind: PersesDashboard
 metadata:
   labels:
     app.kubernetes.io/component: dashboard
-    app.kubernetes.io/instance: node-exporter-composable
+    app.kubernetes.io/instance: node-exporter-overview
     app.kubernetes.io/managed-by: perses-gitops-workflow
     app.kubernetes.io/name: perses-dashboard
     app.kubernetes.io/part-of: perses-operator
-  name: node-exporter-composable
+  name: node-exporter-overview
   namespace: perses-dev
 spec:
   config:
     display:
-      name: Node Exporter / Composable
+      name: Node Exporter / Overview
     duration: 1h
     layouts:
     - kind: Grid
