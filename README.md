@@ -65,6 +65,14 @@ The Argo CD setup here is for **demo purposes**, for production, follow the [Arg
 
 ![Prometheus Operator / Health dashboard in Perses](docs/img/prometheus-operator-dashboard.png)
 
+### Optional: exercise Health panels
+
+```sh
+kubectl apply -f hack/prometheus-operator-demo-load.yaml
+```
+
+Generates reconcile / trigger / error traffic for the Health dashboard (assumes kube-prometheus-stack in `monitoring`). Details and cleanup are in the file header.
+
 ## CI
 
 `make render-dashboards` (runs `validate-dashboards` first) → fail if validation fails or `manifests/dashboards/` drifts.

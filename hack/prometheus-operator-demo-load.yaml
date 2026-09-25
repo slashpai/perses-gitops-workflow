@@ -1,0 +1,199 @@
+# Intentional load for Prometheus Operator / Health (Perses demo).
+#
+# Matches this cluster:
+#   - kube-prometheus-stack in namespace monitoring
+#   - Prometheus selects CRs with label release=kube-prometheus-stack
+#   - Operator metrics job = kube-prometheus-stack-operator
+#
+# What it drives on the dashboard:
+#   - Reconcile rate / triggers  → annotate ServiceMonitor + PrometheusRule
+#   - Reconcile error ratio      → briefly point Prometheus at a missing
+#                                 additionalScrapeConfigs Secret, then heal
+#   - Watch operations           → already produced by the running operator;
+#                                 restarts bump new watches (optional noise)
+#   - List operations            → often stay ~0 on modern clusters (WatchList);
+#                                 failed list/watch need real API failures (not simulated)
+#
+# Apply:
+#   kubectl apply -f hack/prometheus-operator-demo-load.yaml
+#
+# In Perses Health: job=kube-prometheus-stack-operator, namespace=monitoring
+#
+# Cleanup:
+#   kubectl delete -f hack/prometheus-operator-demo-load.yaml
+#   # if a Job was mid-error when deleted, clear the bad scrape ref:
+#   kubectl -n monitoring patch prometheus kube-prometheus-stack-prometheus --type=json \
+#     -p='[{"op":"remove","path":"/spec/additionalScrapeConfigs"}]' || true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: po-demo-load
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: po-demo-load
+    app.kubernetes.io/part-of: perses-gitops-workflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: po-demo-load
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: po-demo-load
+    app.kubernetes.io/part-of: perses-gitops-workflow
+rules:
+  - apiGroups: [monitoring.coreos.com]
+    resources: [servicemonitors, prometheusrules, prometheuses]
+    verbs: [get, list, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: po-demo-load
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: po-demo-load
+    app.kubernetes.io/part-of: perses-gitops-workflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: po-demo-load
+subjects:
+  - kind: ServiceAccount
+    name: po-demo-load
+    namespace: monitoring
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: po-demo-load
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: po-demo-load
+    app.kubernetes.io/part-of: perses-gitops-workflow
+spec:
+  selector:
+    matchLabels:
+      app: kube-prometheus-stack-operator
+      release: kube-prometheus-stack
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  endpoints:
+    - port: https
+      scheme: https
+      honorLabels: true
+      interval: 30s
+      tlsConfig:
+        ca:
+          secret:
+            name: kube-prometheus-stack-admission
+            key: ca
+        serverName: kube-prometheus-stack-operator
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: po-demo-load
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+    app.kubernetes.io/name: po-demo-load
+    app.kubernetes.io/part-of: perses-gitops-workflow
+spec:
+  groups:
+    - name: po-demo-load.rules
+      interval: 30s
+      rules:
+        - record: po_demo_load:up
+          expr: vector(1)
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: po-demo-load
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: po-demo-load
+    app.kubernetes.io/part-of: perses-gitops-workflow
+spec:
+  schedule: "*/1 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      # Job runs ~55s (error window + heal + healthy bumps)
+      activeDeadlineSeconds: 90
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: po-demo-load
+        spec:
+          serviceAccountName: po-demo-load
+          restartPolicy: Never
+          containers:
+            - name: bump
+              image: docker.io/alpine/curl:8.12.1
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  TOKEN="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+                  CACERT="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+                  API="https://kubernetes.default.svc"
+                  NS="monitoring"
+                  PROM="kube-prometheus-stack-prometheus"
+
+                  curl_api() {
+                    method="$1"; path="$2"; data="$3"
+                    curl -sS --fail \
+                      --cacert "${CACERT}" \
+                      -H "Authorization: Bearer ${TOKEN}" \
+                      -H "Content-Type: application/merge-patch+json" \
+                      -X "${method}" \
+                      --data "${data}" \
+                      "${API}${path}" >/dev/null
+                  }
+
+                  annotate() {
+                    kind="$1"; name="$2"; force="$3"
+                    curl_api PATCH \
+                      "/apis/monitoring.coreos.com/v1/namespaces/${NS}/${kind}/${name}" \
+                      "{\"metadata\":{\"annotations\":{\"perses.dev/demo-force\":\"${force}\"}}}"
+                    echo "annotated ${kind}/${name} force=${force}"
+                  }
+
+                  # --- Reconcile errors ---
+                  # Missing additionalScrapeConfigs Secret → prometheus Sync() fails
+                  # (retries while set → reconcile_errors_total climbs).
+                  echo "injecting intentional reconcile error"
+                  curl_api PATCH \
+                    "/apis/monitoring.coreos.com/v1/namespaces/${NS}/prometheuses/${PROM}" \
+                    '{"spec":{"additionalScrapeConfigs":{"name":"po-demo-missing-scrape","key":"scrape.yaml"}}}'
+                  sleep 25
+
+                  echo "healing prometheus (remove bad scrape ref)"
+                  # JSON patch remove — merge-patch cannot clear the field reliably
+                  curl -sS --fail \
+                    --cacert "${CACERT}" \
+                    -H "Authorization: Bearer ${TOKEN}" \
+                    -H "Content-Type: application/json-patch+json" \
+                    -X PATCH \
+                    --data '[{"op":"remove","path":"/spec/additionalScrapeConfigs"}]' \
+                    "${API}/apis/monitoring.coreos.com/v1/namespaces/${NS}/prometheuses/${PROM}" \
+                    >/dev/null || true
+                  sleep 5
+
+                  # --- Healthy reconciles / triggers ---
+                  TS="$(date +%s)"
+                  for i in 1 2; do
+                    annotate servicemonitors po-demo-load "${TS}-${i}"
+                    annotate prometheusrules po-demo-load "${TS}-${i}"
+                    if [ "$i" -lt 2 ]; then sleep 10; fi
+                  done
+                  echo "demo load cycle done"
