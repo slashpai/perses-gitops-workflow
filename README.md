@@ -51,7 +51,11 @@ The Argo CD setup here is for **demo purposes**, for production, follow the [Arg
 
 ![Argo CD synced dashboard resources](docs/img/synced-dashboard.png)
 
+![Perses UI — Node Exporter / Overview after first sync](docs/img/perses-dashboards-1.png)
+
 ![Argo CD synced new dashboard resource](docs/img/synced-new-dashboard.png)
+
+![Perses UI — Overview + Prometheus Operator / Health after second sync](docs/img/perses-dashboards-2.png)
 
 **Node Exporter / Overview** — community-mixins CPU/Memory (kube-prometheus `job="node-exporter"` matchers) + custom Filesystem panel:
 
