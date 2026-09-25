@@ -166,3 +166,17 @@ func StatusUpdateErrorRate(labelMatchers ...*labels.Matcher) parser.Expr {
 	)
 	return withOperatorMatchers(base, labelMatchers...)
 }
+
+// WorkqueueAddsRate is rate(prometheus_operator_workqueue_adds_total) by name/controller.
+func WorkqueueAddsRate(labelMatchers ...*labels.Matcher) parser.Expr {
+	// rate() requires a range vector; the [$__rate_interval] matrix was omitted.
+	base := promqlbuilder.Sum(
+		&parser.Call{
+			Func: parser.Functions["rate"],
+			Args: parser.Expressions{
+				vector.New(vector.WithMetricName("prometheus_operator_workqueue_adds_total")),
+			},
+		},
+	).By("name", "controller")
+	return withOperatorMatchers(base, labelMatchers...)
+}
