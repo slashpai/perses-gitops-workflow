@@ -61,6 +61,10 @@ The Argo CD setup here is for **demo purposes**, for production, follow the [Arg
 
 ![Node Exporter / Overview dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
 
+**Prometheus Operator / Health** — from-scratch dashboard with `$job` / `$namespace` (local PromQL helpers):
+
+![Prometheus Operator / Health dashboard in Perses](docs/img/prometheus-operator-dashboard.png)
+
 ## CI
 
 `make render-dashboards` (runs `validate-dashboards` first) → fail if validation fails or `manifests/dashboards/` drifts.
