@@ -44,6 +44,47 @@ func TestFilesystemUsedRatioPassesValidate(t *testing.T) {
 	}
 }
 
+func TestReconcileRateProducesExpectedPromQL(t *testing.T) {
+	expr := ReconcileRate(
+		label.New("cluster").Equal("$cluster"),
+	)
+	query := expr.Pretty(0)
+
+	for _, want := range []string{
+		`prometheus_operator_reconcile_operations_total`,
+		`job=~"$job"`,
+		`namespace=~"$namespace"`,
+		`cluster="$cluster"`,
+		`by (controller, namespace)`,
+	} {
+		if !strings.Contains(query, want) {
+			t.Fatalf("query missing %q:\n%s", want, query)
+		}
+	}
+}
+
+func TestReconcileErrorRatioProducesExpectedPromQL(t *testing.T) {
+	expr := ReconcileErrorRatio()
+	query := expr.Pretty(0)
+
+	for _, want := range []string{
+		`prometheus_operator_reconcile_errors_total`,
+		`prometheus_operator_reconcile_operations_total`,
+		`job=~"$job"`,
+		`namespace=~"$namespace"`,
+	} {
+		if !strings.Contains(query, want) {
+			t.Fatalf("query missing %q:\n%s", want, query)
+		}
+	}
+}
+
+func TestReconcileRatePassesValidate(t *testing.T) {
+	if ReconcileRate() == nil {
+		t.Fatal("expected non-nil expression")
+	}
+}
+
 func TestInvalidExpressionPanicsOnValidate(t *testing.T) {
 	expr := &parser.BinaryExpr{
 		Op:  parser.ADD,

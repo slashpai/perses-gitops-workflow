@@ -16,6 +16,7 @@ import (
 
 	"github.com/slashpai/perses-gitops-workflow/dashboards/build"
 	nodeexporter "github.com/slashpai/perses-gitops-workflow/dashboards/node_exporter"
+	promoperator "github.com/slashpai/perses-gitops-workflow/dashboards/prometheus_operator"
 
 	"github.com/perses/perses/go-sdk/dashboard"
 	k8syaml "sigs.k8s.io/yaml"
@@ -32,6 +33,7 @@ func main() {
 		build func(string, string) (dashboard.Builder, error)
 	}{
 		{"node-exporter-overview", nodeexporter.BuildOverview},
+		{"prometheus-operator-health", promoperator.BuildPrometheusOperator},
 	}
 
 	if err := os.MkdirAll(*outputDir, 0o755); err != nil {
