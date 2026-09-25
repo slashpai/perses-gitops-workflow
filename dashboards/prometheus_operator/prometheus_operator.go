@@ -203,6 +203,31 @@ func BuildPrometheusOperator(project, datasource string) (dashboard.Builder, err
 			),
 		),
 
+		// --- Workqueue ---
+		dashboard.AddPanelGroup("Workqueue",
+			panelgroup.PanelsPerLine(1),
+			panelgroup.PanelHeight(8),
+			panelgroup.AddPanel("Workqueue Adds",
+				panel.Description("Rate of workqueue adds by name and controller."),
+				timeSeriesPanel.Chart(
+					timeSeriesPanel.WithYAxis(timeSeriesPanel.YAxis{
+						Format: &commonSdk.Format{Unit: &opsPerSecondUnit},
+					}),
+					timeSeriesPanel.WithLegend(timeSeriesPanel.Legend{
+						Position: timeSeriesPanel.BottomPosition,
+						Mode:     timeSeriesPanel.ListMode,
+					}),
+				),
+				panel.AddQuery(
+					query.PromQL(
+						gitpromql.WorkqueueAddsRate().Pretty(0),
+						build.QueryDatasource(datasource),
+						query.SeriesNameFormat("{{name}} / {{controller}}"),
+					),
+				),
+			),
+		),
+
 		// --- Status ---
 		dashboard.AddPanelGroup("Status",
 			panelgroup.PanelsPerLine(2),
