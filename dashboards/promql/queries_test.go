@@ -4,11 +4,16 @@ import (
 	"strings"
 	"testing"
 
+	communityPanels "github.com/perses/community-mixins/pkg/panels/node_exporter"
+	mixinpromql "github.com/perses/community-mixins/pkg/promql"
 	"github.com/perses/promql-builder/label"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
 func TestFilesystemUsedRatioProducesExpectedPromQL(t *testing.T) {
+	communityPanels.SetNodeExporterLabelValue("node-exporter")
+	t.Cleanup(func() { communityPanels.SetNodeExporterLabelValue("node") })
+
 	expr := FilesystemUsedRatio(
 		label.New("cluster").Equal("$cluster"),
 	)
@@ -30,6 +35,9 @@ func TestFilesystemUsedRatioProducesExpectedPromQL(t *testing.T) {
 }
 
 func TestFilesystemUsedRatioPassesValidate(t *testing.T) {
+	communityPanels.SetNodeExporterLabelValue("node-exporter")
+	t.Cleanup(func() { communityPanels.SetNodeExporterLabelValue("node") })
+
 	expr := FilesystemUsedRatio()
 	if expr == nil {
 		t.Fatal("expected non-nil expression")
@@ -46,7 +54,7 @@ func TestInvalidExpressionPanicsOnValidate(t *testing.T) {
 			t.Fatal("expected SetLabelMatchersV2 to panic on invalid expression")
 		}
 	}()
-	SetLabelMatchersV2(expr, nil)
+	mixinpromql.SetLabelMatchersV2(expr, nil)
 }
 
 func TestInvalidRawStringFailsParse(t *testing.T) {

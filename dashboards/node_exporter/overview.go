@@ -4,9 +4,12 @@
 package nodeexporter
 
 import (
+	"fmt"
+
 	gitpromql "github.com/slashpai/perses-gitops-workflow/dashboards/promql"
 
 	communityPanels "github.com/perses/community-mixins/pkg/panels/node_exporter"
+	mixinpromql "github.com/perses/community-mixins/pkg/promql"
 
 	commonSdk "github.com/perses/perses/go-sdk/common"
 	"github.com/perses/perses/go-sdk/dashboard"
@@ -23,12 +26,15 @@ import (
 //   - CPU and Memory panels are imported from community-mixins (reuse)
 //   - Filesystem panel is written locally (extend)
 //
-// This is the pattern recommended by the community-mixins project:
-// import panels as Go modules, customise label matchers for your
-// environment, and add panels for workload-specific needs.
+// Job label follows community-mixins library usage:
+// https://github.com/perses/community-mixins#library-usage
 func BuildOverview(project, datasource string) (dashboard.Builder, error) {
-	jobMatcher := &labels.Matcher{Name: "job", Type: labels.MatchEqual, Value: "node-exporter"}
-	instanceMatcher := &labels.Matcher{Name: "instance", Type: labels.MatchRegexp, Value: "$instance"}
+	// kube-prometheus-stack scrapes node-exporter as job="node-exporter"
+	// (mixins default is "node").
+	communityPanels.SetNodeExporterLabelValue("node-exporter")
+	jobValue := communityPanels.GetNodeExporterLabelValue()
+	jobMatcher := &labels.Matcher{Name: "job", Type: labels.MatchEqual, Value: jobValue}
+	instanceMatcher := mixinpromql.InstanceVarV2
 
 	return dashboard.New("node-exporter-overview",
 		dashboard.ProjectName(project),
@@ -36,7 +42,7 @@ func BuildOverview(project, datasource string) (dashboard.Builder, error) {
 		dashboard.AddVariable("instance",
 			listvariable.List(
 				labelvalues.PrometheusLabelValues("instance",
-					labelvalues.Matchers(`node_uname_info{job="node-exporter",sysname!="Darwin"}`),
+					labelvalues.Matchers(fmt.Sprintf(`node_uname_info{job="%s",sysname!="Darwin"}`, jobValue)),
 					variableDatasource(datasource),
 				),
 				listvariable.DisplayName("instance"),
