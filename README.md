@@ -43,25 +43,39 @@ kubectl apply -f manifests/dashboards/
 make setup-argocd
 ```
 
-Perses UI: `kubectl -n perses-dev port-forward svc/perses-sample 8080:8080` → [http://localhost:8080](http://localhost:8080)
+**Perses UI:** `kubectl -n perses-dev port-forward svc/perses-sample 8080:8080` → [http://localhost:8080](http://localhost:8080)
 
 The Argo CD setup here is for **demo purposes**, for production, follow the [Argo CD documentation](https://argo-cd.readthedocs.io/en/stable/). See [`deploy/argocd/README.md`](deploy/argocd/README.md) for UI, polling details, and troubleshooting.
 
+### Argo CD: Applications list
+
 ![Argo CD Applications list — perses-dashboards Healthy / Synced](docs/img/argocd-app.png)
+
+### Argo CD: synced dashboard resources
 
 ![Argo CD synced dashboard resources](docs/img/synced-dashboard.png)
 
-![Perses UI — Node Exporter / Overview after first sync](docs/img/perses-dashboards-1.png)
+### Perses UI: first sync (Node Exporter / Overview)
+
+![Perses UI: Node Exporter / Overview after first sync](docs/img/perses-dashboards-1.png)
+
+### Argo CD: synced new dashboard
 
 ![Argo CD synced new dashboard resource](docs/img/synced-new-dashboard.png)
 
+### Perses UI: second sync (Overview + Health)
+
 ![Perses UI — Overview + Prometheus Operator / Health after second sync](docs/img/perses-dashboards-2.png)
 
-**Node Exporter / Overview** — community-mixins CPU/Memory (kube-prometheus `job="node-exporter"` matchers) + custom Filesystem panel:
+### Node Exporter / Overview
+
+Community-mixins CPU/Memory (kube-prometheus `job="node-exporter"` matchers) + custom Filesystem panel:
 
 ![Node Exporter / Overview dashboard in Perses](docs/img/perses-node-exporter-dashboard-demo.png)
 
-**Prometheus Operator / Health** — from-scratch dashboard with `$job` / `$namespace` (local PromQL helpers):
+### Prometheus Operator / Health
+
+From-scratch dashboard with `$job` / `$namespace` (local PromQL helpers):
 
 ![Prometheus Operator / Health dashboard in Perses](docs/img/prometheus-operator-dashboard.png)
 
