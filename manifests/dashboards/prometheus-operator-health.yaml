@@ -1,0 +1,421 @@
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  labels:
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/instance: prometheus-operator-health
+    app.kubernetes.io/managed-by: perses-gitops-workflow
+    app.kubernetes.io/name: perses-dashboard
+    app.kubernetes.io/part-of: perses-operator
+  name: prometheus-operator-health
+  namespace: perses-dev
+spec:
+  config:
+    display:
+      name: Prometheus Operator / Health
+    duration: 1h
+    layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Reconciliation
+        items:
+        - content:
+            $ref: '#/spec/panels/0_0'
+          height: 8
+          width: 8
+          x: 0
+          "y": 0
+        - content:
+            $ref: '#/spec/panels/0_1'
+          height: 8
+          width: 8
+          x: 8
+          "y": 0
+        - content:
+            $ref: '#/spec/panels/0_2'
+          height: 8
+          width: 8
+          x: 16
+          "y": 0
+    - kind: Grid
+      spec:
+        display:
+          title: Triggers
+        items:
+        - content:
+            $ref: '#/spec/panels/1_0'
+          height: 8
+          width: 24
+          x: 0
+          "y": 0
+    - kind: Grid
+      spec:
+        display:
+          title: API Operations
+        items:
+        - content:
+            $ref: '#/spec/panels/2_0'
+          height: 8
+          width: 12
+          x: 0
+          "y": 0
+        - content:
+            $ref: '#/spec/panels/2_1'
+          height: 8
+          width: 12
+          x: 12
+          "y": 0
+    - kind: Grid
+      spec:
+        display:
+          title: Status
+        items:
+        - content:
+            $ref: '#/spec/panels/3_0'
+          height: 6
+          width: 12
+          x: 0
+          "y": 0
+        - content:
+            $ref: '#/spec/panels/3_1'
+          height: 6
+          width: 12
+          x: 12
+          "y": 0
+    panels:
+      "0_0":
+        kind: Panel
+        spec:
+          display:
+            description: Rate of reconcile operations by controller.
+            name: Reconcile Rate
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    sum by (controller, namespace) (
+                      rate(
+                        prometheus_operator_reconcile_operations_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                      )
+                    )
+                  seriesNameFormat: '{{controller}}'
+      "0_1":
+        kind: Panel
+        spec:
+          display:
+            description: Fraction of reconcile operations that failed.
+            name: Reconcile Error Ratio
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: percent-decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |2-
+                      sum by (controller, namespace) (
+                        rate(
+                          prometheus_operator_reconcile_errors_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                        )
+                      )
+                    /
+                      sum by (controller, namespace) (
+                        rate(
+                          prometheus_operator_reconcile_operations_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                        )
+                      )
+                  seriesNameFormat: '{{controller}}'
+      "0_2":
+        kind: Panel
+        spec:
+          display:
+            description: Latency histogram quantiles for reconcile operations.
+            name: Reconcile Duration (p99 / p50)
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: seconds
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    histogram_quantile(
+                      0.99,
+                      sum by (controller, namespace, le) (
+                        rate(
+                          prometheus_operator_reconcile_duration_seconds_bucket{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                        )
+                      )
+                    )
+                  seriesNameFormat: p99 {{controller}}
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    histogram_quantile(
+                      0.5,
+                      sum by (controller, namespace, le) (
+                        rate(
+                          prometheus_operator_reconcile_duration_seconds_bucket{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                        )
+                      )
+                    )
+                  seriesNameFormat: p50 {{controller}}
+      "1_0":
+        kind: Panel
+        spec:
+          display:
+            description: Rate of Kubernetes events triggering reconciliation, by resource
+              and action.
+            name: Triggered Events
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    sum by (triggered_by, action) (
+                      rate(prometheus_operator_triggered_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval])
+                    )
+                  seriesNameFormat: '{{triggered_by}} / {{action}}'
+      "2_0":
+        kind: Panel
+        spec:
+          display:
+            description: Rate of Kubernetes API list operations (total vs failed).
+            name: List Operations
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    sum(
+                      rate(
+                        prometheus_operator_list_operations_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                      )
+                    )
+                  seriesNameFormat: total
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    sum(
+                      rate(
+                        prometheus_operator_list_operations_failed_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                      )
+                    )
+                  seriesNameFormat: failed
+      "2_1":
+        kind: Panel
+        spec:
+          display:
+            description: Rate of Kubernetes API watch operations (total vs failed).
+            name: Watch Operations
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    sum(
+                      rate(
+                        prometheus_operator_watch_operations_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                      )
+                    )
+                  seriesNameFormat: total
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    sum(
+                      rate(
+                        prometheus_operator_watch_operations_failed_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                      )
+                    )
+                  seriesNameFormat: failed
+      "3_0":
+        kind: Panel
+        spec:
+          display:
+            description: 1 when the controller is ready to reconcile, 0 otherwise.
+            name: Controller Ready
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: prometheus_operator_ready{job=~"$job",namespace=~"$namespace"}
+                  seriesNameFormat: ready
+      "3_1":
+        kind: Panel
+        spec:
+          display:
+            description: Rate of errors when updating status subresources.
+            name: Status Update Errors
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              legend:
+                mode: list
+                position: bottom
+              yAxis:
+                format:
+                  unit: decimal
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                    name: prometheus-datasource
+                  query: |-
+                    sum(
+                      rate(
+                        prometheus_operator_status_update_errors_total{job=~"$job",namespace=~"$namespace"}[$__rate_interval]
+                      )
+                    )
+                  seriesNameFormat: errors/s
+    variables:
+    - kind: ListVariable
+      spec:
+        allowAllValue: true
+        allowMultiple: false
+        display:
+          hidden: false
+          name: job
+        name: job
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+              name: prometheus-datasource
+            labelName: job
+            matchers:
+            - prometheus_operator_reconcile_operations_total{}
+    - kind: ListVariable
+      spec:
+        allowAllValue: true
+        allowMultiple: false
+        display:
+          hidden: false
+          name: namespace
+        name: namespace
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+              name: prometheus-datasource
+            labelName: namespace
+            matchers:
+            - prometheus_operator_reconcile_operations_total{job=~"$job"}
+status: {}
